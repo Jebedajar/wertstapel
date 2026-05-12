@@ -1,0 +1,143 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg:         #F7F8FB;
+  --bg-alt:     #EEF1F7;
+  --paper:      #FFFFFF;
+  --ink:        #0B1220;
+  --ink-2:      #1F2937;
+  --mute:       #5E6B82;
+  --faint:      #97A1B5;
+  --line:       #E6EAF2;
+  --line-2:     #D0D7E6;
+  --green:      #2563EB;
+  --green-deep: #0B1E47;
+  --green-soft: #EEF3FE;
+  --lime:       #FFDD55;
+  --accent-2:   #93C5FD;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  background: #F4F2EC;
+  color: var(--ink);
+  font-family: 'Manrope', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+}
+
+::selection {
+  background: var(--green);
+  color: #fff;
+}
+
+/* Utility classes preserved from original */
+.mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.display {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 0.98;
+}
+
+.eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+
+.wrap {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  vertical-align: middle;
+}
+
+.dot.live {
+  animation: dotPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes dotPulse {
+  0%, 100% { transform: scale(1);   opacity: 1;   }
+  50%       { transform: scale(0.6); opacity: 0.5; }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.55; }
+}
+
+.fu   { animation: fadeUp 0.6s ease both; }
+.fu-1 { animation: fadeUp 0.6s 0.08s ease both; }
+.fu-2 { animation: fadeUp 0.6s 0.16s ease both; }
+.fu-3 { animation: fadeUp 0.6s 0.24s ease both; }
+.fu-4 { animation: fadeUp 0.6s 0.32s ease both; }
+
+/* Modal overlay — always full screen in real Next.js app (not iframe) */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 46, 27, 0.45);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  padding: 16px;
+}
+
+.modal-box {
+  background: #fff;
+  border-radius: 24px;
+  width: 100%;
+  max-width: 560px;
+  max-height: 92vh;
+  overflow-y: auto;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.25);
+}
+
+/* Advanced section toggle */
+details > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+details > summary::-webkit-details-marker {
+  display: none;
+}

@@ -1,0 +1,51 @@
+{
+  "_comment": "Wertstapel — Konfiguration mit SKR03 und SKR04 Presets",
+
+  "datev_header": {
+    "berater_nr":   "",
+    "mandant_nr":   "",
+    "diktatkuerzel":"XX",
+    "wj_beginn":    ""
+  },
+
+  "presets": {
+    "SKR04": {
+      "_comment": "Standardkontenrahmen 04 — DATEV Dok. 5300857",
+      "sachkontenrahmen": "04",
+      "bank":                 { "nr": "1801", "name": "Bank" },
+      "wertpapiere_uv":       { "nr": "1510", "name": "Sonstige Wertpapiere UV" },
+      "erloese_gewinn":       { "nr": "4906", "name": "Ertraege Abgang UV §8b Abs.2" },
+      "verluste_erloes":      { "nr": "6906", "name": "Verluste Abgang UV §8b Abs.3" },
+      "abgang_gewinn":        { "nr": "4904", "name": "Abgang Buchwert §8b Abs.2 Buchgewinn" },
+      "abgang_verlust":       { "nr": "6904", "name": "Abgang Buchwert §8b Abs.3 Buchverlust" },
+      "gebuehren_vk_gewinn":  { "nr": "6857", "name": "Veraeu.kosten §8b Abs.2" },
+      "gebuehren_vk_verlust": { "nr": "6858", "name": "Veraeu.kosten §8b Abs.3" }
+    },
+    "SKR03": {
+      "_comment": "Standardkontenrahmen 03 — DATEV Dok. 5300857",
+      "sachkontenrahmen": "03",
+      "bank":                 { "nr": "1200", "name": "Bank" },
+      "wertpapiere_uv":       { "nr": "1349", "name": "Wertpapieranlagen kurzfr. Finanzdisposition" },
+      "erloese_gewinn":       { "nr": "2726", "name": "Ertraege Abgang UV §8b Abs.2" },
+      "verluste_erloes":      { "nr": "2326", "name": "Verluste Abgang UV §8b Abs.3" },
+      "abgang_gewinn":        { "nr": "2724", "name": "Abgang Buchwert §8b Abs.2 Buchgewinn" },
+      "abgang_verlust":       { "nr": "2324", "name": "Abgang Buchwert §8b Abs.3 Buchverlust" },
+      "gebuehren_vk_gewinn":  { "nr": "4976", "name": "Veraeu.kosten §8b Abs.2" },
+      "gebuehren_vk_verlust": { "nr": "4977", "name": "Veraeu.kosten §8b Abs.3" }
+    }
+  },
+
+  "buchungstexte": {
+    "kauf":              "Kauf {anzahl} {bezeichnung} ({isin})",
+    "verkauf_erloes":    "Verkauf {anzahl} {bezeichnung} ({isin}){teilfrei}",
+    "verkauf_gebuehren": "Gebuehren Verkauf {isin} (Auftrag {auftragsnr})",
+    "verkauf_abgang":    "Abgang Buchwert {isin} (Auftrag {auftragsnr})"
+  },
+
+  "options": {
+    "kuerze_bezeichnung_auf": 30,
+    "plausi_toleranz_eur":    0.05,
+    "schreibe_review_csv":    true,
+    "schreibe_log":           true
+  }
+}
