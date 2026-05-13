@@ -63,7 +63,6 @@ a { text-decoration: none; color: inherit; }
   gap: 16px;
   align-items: stretch;
 }
-.diff-labels { display: grid; }
 .grid-time {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -94,11 +93,6 @@ a { text-decoration: none; color: inherit; }
 /* ── Sections ───────────────────────────────── */
 .sec      { padding: 120px 0; }
 .sec-sm   { padding: 80px 0; }
-.sh-wrap  { margin-bottom: 56px; align-items: flex-end; }
-.sh-title { flex: 1 1 600px; }
-.hero-sec { padding-top: 96px; padding-bottom: 110px; }
-.hero-h1  { margin-bottom: 44px; }
-.hero-copy { margin-bottom: 48px; }
 
 /* ── Nav ────────────────────────────────────── */
 .nav-links { display: flex; align-items: center; gap: 28px; }
@@ -246,14 +240,10 @@ a { text-decoration: none; color: inherit; }
   /* Sections */
   .sec    { padding: 72px 0; }
   .sec-sm { padding: 56px 0; }
-  .hero-sec  { padding-top: 36px; padding-bottom: 48px; }
-  .hero-h1   { margin-bottom: 16px; }
-  .hero-copy { margin-bottom: 20px; }
 
   /* Section header */
-  .sh-wrap  { flex-direction: column; align-items: flex-start; gap: 16px; margin-bottom: 20px; }
-  .sh-title { flex: none; width: 100%; }
-  .sh-sub   { max-width: 100% !important; }
+  .sh-wrap { flex-direction: column; gap: 16px; margin-bottom: 36px; }
+  .sh-sub  { max-width: 100% !important; }
 
   /* Grids */
   .grid-4   { grid-template-columns: 1fr; gap: 14px; }

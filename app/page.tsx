@@ -2,10 +2,12 @@
 
 import { useState, useRef, useCallback } from 'react'
 import dynamic from 'next/dynamic'
+const NavAccount = dynamic(() => import('@/components/NavAccount'), { ssr: false })
 import { PLANS, FAQS } from '@/lib/data'
 
 const ConfigModal = dynamic(() => import('@/components/ConfigModal'), { ssr: false })
 
+/* ── Logo ── */
 const LogoMark = ({ height = 15, color = 'var(--gr)' }: { height?: number; color?: string }) => {
   const w = Math.round(height * 18 / 22)
   return (
@@ -22,9 +24,10 @@ const Wordmark = ({ size = 15, color = 'var(--ink)', markColor = 'var(--gr)' }: 
   </span>
 )
 
+/* ── Section header ── */
 const SH = ({ kicker, title, sub, dark = false }: { kicker?: string; title: React.ReactNode; sub?: string; dark?: boolean }) => (
-  <div className="sh-wrap" style={{ display: 'flex', gap: 32, flexWrap: 'wrap', justifyContent: 'space-between' }}>
-    <div className="sh-title">
+  <div className="sh-wrap" style={{ display: 'flex', gap: 32, marginBottom: 56, flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+    <div style={{ flex: '1 1 600px' }}>
       {kicker && <div className="mono" style={{ fontSize: 12, letterSpacing: '.08em', textTransform: 'uppercase', color: dark ? 'rgba(255,255,255,.55)' : 'var(--gr)', marginBottom: 14 }}>{kicker}</div>}
       <h2 className="display" style={{ fontSize: 'clamp(36px,5vw,68px)', color: dark ? '#fff' : 'var(--ink)' }}>{title}</h2>
     </div>
@@ -32,6 +35,7 @@ const SH = ({ kicker, title, sub, dark = false }: { kicker?: string; title: Reac
   </div>
 )
 
+/* ── Upload zone ── */
 function UploadZone({ onFile }: { onFile: (f: File) => void }) {
   const [drag, setDrag] = useState(false)
   const ref = useRef<HTMLInputElement>(null)
@@ -56,24 +60,37 @@ function UploadZone({ onFile }: { onFile: (f: File) => void }) {
   )
 }
 
-function FaqItem({ q, a }: { q: string; a: string }) {
+/* ── FAQ item ── */
+function FaqItem({ q, a, open, onToggle }: { q: string; a: string; open: boolean; onToggle: () => void }) {
   return (
     <div style={{ borderTop: '1px solid var(--ln)', padding: '24px 0' }}>
-      <div style={{ fontSize: 'clamp(16px,2vw,20px)', fontWeight: 600, color: 'var(--ink)', letterSpacing: '-.015em', marginBottom: 14 }}>{q}</div>
-      <p style={{ fontSize: 15, lineHeight: 1.65, color: 'var(--mu)' }}>{a}</p>
+      <button onClick={onToggle} style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 24, background: 'none', border: 'none', textAlign: 'left', padding: 0, cursor: 'pointer' }}>
+        <span style={{ fontSize: 'clamp(16px,2vw,20px)', fontWeight: 600, color: 'var(--ink)', letterSpacing: '-.015em' }}>{q}</span>
+        <span style={{ width: 36, height: 36, borderRadius: '50%', border: '1px solid var(--ln2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all .2s', background: open ? 'var(--ink)' : 'transparent', color: open ? '#fff' : 'var(--ink)' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open ? 'rotate(45deg)' : 'none', transition: 'transform .25s' }}>
+            <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+        </span>
+      </button>
+      {open && <p style={{ marginTop: 16, fontSize: 15, lineHeight: 1.65, color: 'var(--mu)' }}>{a}</p>}
     </div>
   )
 }
 
+/* ── Checkmark ── */
 const Chk = ({ color = 'var(--a2)' }: { color?: string }) => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ marginTop: 3, flexShrink: 0 }}>
     <polyline points="20 6 9 17 4 12" />
   </svg>
 )
 
+/* ══════════════════════════════════════════════════
+   MAIN PAGE
+══════════════════════════════════════════════════ */
 export default function Home() {
   const [file,      setFile]      = useState<File | null>(null)
   const [showModal, setShowModal] = useState(false)
+  const [openFaq,   setOpenFaq]   = useState(-1)
   const [navOpen,   setNavOpen]   = useState(false)
 
   const handleFile = useCallback((f: File) => { if (f.type === 'application/pdf') { setFile(f); setShowModal(true) } }, [])
@@ -86,9 +103,11 @@ export default function Home() {
         <div className="wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 68, position: 'relative' }}>
           <Wordmark />
           <div className={`nav-links${navOpen ? ' open' : ''}`}>
+            {(['Wie es funktioniert', '#how'], ['Preise', '#pricing'], ['FAQ', '#faq']).map && null}
             {[['Wie es funktioniert', '#how'], ['Preise', '#pricing'], ['FAQ', '#faq']].map(([t, h]) => (
               <a key={t} href={h} className="nav-link" onClick={() => setNavOpen(false)}>{t}</a>
             ))}
+            <NavAccount onScrollToUpload={scrollUp} />
             <button onClick={scrollUp} style={{ padding: '10px 18px', borderRadius: 999, background: 'var(--ink)', color: '#fff', border: 'none', fontSize: 13, fontWeight: 600, letterSpacing: '-.005em', display: 'inline-flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap' }}>
               Jetzt starten
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
@@ -101,14 +120,14 @@ export default function Home() {
       </nav>
 
       {/* HERO */}
-      <section className="sec hero-sec" style={{ background: 'var(--bg)' }}>
+      <section className="sec" style={{ background: 'var(--bg)', paddingTop: 96, paddingBottom: 110 }}>
         <div className="wrap" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-          <h1 className="display fu hero-h1" style={{ lineHeight: 1.08, fontSize: 'clamp(38px,7vw,80px)', maxWidth: 900 }}>
+          <h1 className="display fu" style={{ marginBottom: 44, lineHeight: 1.08, fontSize: 'clamp(38px,7vw,80px)', maxWidth: 900 }}>
             Wertpapier-PDF rein.<br />
             <span style={{ color: 'var(--gr)' }}>DATEV-Stapel raus.</span>
           </h1>
-          <p className="fu1 hero-copy" style={{ fontSize: 'clamp(16px,2vw,20px)', lineHeight: 1.55, color: 'var(--ink2)', maxWidth: 680 }}>
-            Schluss mit dem manuellen Buchen von Wertpapier-Transaktionen: Sie laden das PDF der Depot-Bank hoch, wir liefern in 5 Minuten den DATEV-Stapel — fertig zum Import und mit Plausibilitätscheck. Keine Seitenbegrenzung. Kein Abo.
+          <p className="fu1" style={{ fontSize: 'clamp(16px,2vw,20px)', lineHeight: 1.55, color: 'var(--ink2)', maxWidth: 680, marginBottom: 48 }}>
+            Schluss mit dem manuellen Buchen von Wertpapier-Transaktionen: Sie laden das PDF ihrer Depot-Bank hoch, wir liefern in 5 Minuten den DATEV-Stapel — fertig zum Import und mit Plausibilitätscheck. Keine Seitenbegrenzung. Kein Abo.
           </p>
           <div id="hero-upload" className="fu2" style={{ width: '100%', maxWidth: 720 }}>
             <UploadZone onFile={handleFile} />
@@ -128,17 +147,10 @@ export default function Home() {
       <section style={{ borderTop: '1px solid var(--ln)', borderBottom: '1px solid var(--ln)', background: 'var(--bga)' }}>
         <div className="wrap">
           <div className="grid-stat">
-            {([
-              ['<5min', 'Verarbeitungszeit'],
-              ['0',     'Seitenlimit'],
-              ['5h',    'Zeitersparnis /\nExport'],
-              ['§8b',   'KStG-konform'],
-            ] as [string, string][]).map(([n, lb], i) => (
+            {[['<5min', 'Verarbeitungszeit'], ['0', 'Seitenlimit'], ['5h', 'Zeitersparnis/Export'], ['§8b', 'KStG-konform']].map(([n, lb], i) => (
               <div key={i} className="stat-cell">
                 <div className="display" style={{ fontSize: 'clamp(32px,4.5vw,58px)', marginBottom: 8, color: 'var(--ink)' }}>{n}</div>
-                <div className="mono stat-label" style={{ fontSize: 11, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--mu)' }}>
-                  {lb.split('\n').map((line, j) => <span key={j} style={{ display: 'block' }}>{line}</span>)}
-                </div>
+                <div className="mono" style={{ fontSize: 11, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--mu)' }}>{lb}</div>
               </div>
             ))}
           </div>
@@ -168,18 +180,16 @@ export default function Home() {
 
           {/* Time savings block */}
           <div className="time-block" style={{ marginTop: 32, padding: '48px 40px', background: 'var(--ink)', borderRadius: 20, color: '#fff' }}>
-            <div className="mono" style={{ fontSize: 12, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--a2)', marginBottom: 36, textAlign: 'center', fontWeight: 600 }}>
-              Zeit sparen mit Wertstapel
+            <div className="mono" style={{ fontSize: 12, letterSpacing: '.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,.55)', marginBottom: 36, textAlign: 'center' }}>
+              Ihre Zeitersparnis mit Wertstapel
             </div>
             <div className="grid-time">
               {[
                 { label: '5 Stunden', sub: 'Manuell · pro Export', filled: true },
-                { label: '5 Minuten', sub: 'Mit Wertstapel',       filled: false },
+                { label: '5 Minuten', sub: 'Mit Wertstapel', filled: false },
               ].map((col, ci) => (
                 <div key={ci} style={{ textAlign: 'center' }}>
-                  <div className="mono" style={{ fontSize: 11, letterSpacing: '.06em', textTransform: 'uppercase', color: col.filled ? 'rgba(255,255,255,.5)' : 'var(--a2)', marginBottom: 6 }}>{col.sub}</div>
-                  <div className="display" style={{ fontSize: 28, color: '#fff', marginBottom: 18 }}>{col.label}</div>
-                  <div className="circles" style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+                  <div className="circles" style={{ display: 'flex', gap: 10, justifyContent: 'center', marginBottom: 18, flexWrap: 'wrap' }}>
                     {[0, 1, 2, 3, 4].map(i => (
                       <div key={i} className="circle" style={{
                         width: 48, height: 48, borderRadius: '50%',
@@ -191,6 +201,8 @@ export default function Home() {
                       </div>
                     ))}
                   </div>
+                  <div className="display" style={{ fontSize: 28, color: '#fff', marginBottom: 4 }}>{col.label}</div>
+                  <div className="mono" style={{ fontSize: 11, letterSpacing: '.06em', textTransform: 'uppercase', color: col.filled ? 'rgba(255,255,255,.5)' : 'var(--a2)' }}>{col.sub}</div>
                 </div>
               ))}
             </div>
@@ -231,7 +243,8 @@ export default function Home() {
         <div className="wrap">
           <SH title={<>Unser Ansatz.<br />Ihre Vorteile.</>} dark />
           <div className="grid-diff">
-            <div className="diff-labels" style={{ gridTemplateRows: '44px 1fr 1fr 1fr', gap: 16 }}>
+            {/* Label column — hidden on mobile via CSS */}
+            <div className="diff-labels" style={{ display: 'grid', gridTemplateRows: '44px 1fr 1fr 1fr', gap: 16 }}>
               <div />
               {['Verarbeitung', 'Volumen', 'Setup'].map(lb => (
                 <div key={lb} className="mono" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', fontSize: 11, letterSpacing: '.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,.4)', paddingRight: 8 }}>{lb}</div>
@@ -239,14 +252,14 @@ export default function Home() {
             </div>
             {[
               { col: 'Wertstapel', good: true, items: [
-                { label: 'Deterministisch',   text: 'Feste Regeln auf Basis offizieller DATEV-Dokumentation. Buchungsvorschlag nachvollziehbar.' },
+                { label: 'Deterministisch',  text: 'Feste Regeln auf Basis offizieller DATEV-Dokumentation. Buchungsvorschlag nachvollziehbar.' },
                 { label: 'Kein Volumenlimit', text: 'Ein Export kostet immer dasselbe — egal ob 5 oder 500 Seiten.' },
-                { label: 'Kein Setup',         text: 'PDF hochladen. Warten. Fertig. Neue Banken werden auf Anfrage implementiert.' },
+                { label: 'Kein Setup',        text: 'PDF hochladen. Warten. Fertig. Neue Banken werden auf Anfrage implementiert.' },
               ]},
               { col: 'Andere Tools', good: false, items: [
                 { label: 'KI-Kategorisierung', text: 'Schätzt, variiert, lernt — aber: keine prüfbare Logik, Ergebnisse können abweichen.' },
-                { label: 'Seitenbegrenzung',   text: '400–4.000 Seiten je Monat oder Export. Je mehr Transaktionen, desto teurer.' },
-                { label: 'Aufwendiges Setup',  text: 'Direkte Bankanbindung bedingt technischem Aufwand und Mithilfe des Mandanten.' },
+                { label: 'Seitenbegrenzung',    text: '400–4.000 Seiten je Monat oder Export. Je mehr Transaktionen, desto teurer.' },
+                { label: 'Aufwendiges Setup',   text: 'Direkte Bankanbindung bedingt technischem Aufwand und Mithilfe des Mandanten.' },
               ]},
             ].map((col, ci) => (
               <div key={ci} style={{ display: 'grid', gridTemplateRows: '44px 1fr 1fr 1fr', gap: 16 }}>
@@ -303,7 +316,7 @@ export default function Home() {
           <SH kicker="FAQ" title={<>Häufig gestellte<br />Fragen.</>} />
           <div className="grid-2" style={{ gap: '0 48px' }}>
             {FAQS.map((f, i) => (
-              <FaqItem key={i} q={f.q} a={f.a} />
+              <FaqItem key={i} q={f.q} a={f.a} open={openFaq === i} onToggle={() => setOpenFaq(openFaq === i ? -1 : i)} />
             ))}
           </div>
         </div>
@@ -342,7 +355,7 @@ export default function Home() {
         <div className="wrap" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
             <Wordmark size={13} />
-            <span style={{ fontSize: 13, color: 'var(--fa)' }}>Buchungsstapel für Wertpapierabrechnungen</span>
+            <span style={{ fontSize: 13, color: 'var(--fa)' }}>Buchungsstapel für Wertpapier­abrechnungen</span>
           </div>
           <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
             {['Impressum', 'Datenschutz', 'AGB', 'AVV'].map(t => (

@@ -32,18 +32,6 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="de" className={`${manrope.variable} ${jetbrainsMono.variable}`}>
-      <head>
-        <link rel="icon" type="image/svg+xml" href="/favicons/favicon.svg" />
-        <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32.png" />
-        <link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16.png" />
-        <link rel="shortcut icon" href="/favicons/favicon-32.png" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png" />
-        <link rel="manifest" href="/favicons/site.webmanifest" />
-        <meta name="theme-color" content="#2563EB" />
-        {/* Privacy-friendly analytics by Plausible */}
-        <script async src="https://plausible.io/js/pa-Dw7oMD_Cb8xzg_1qOcC71.js" />
-        <script dangerouslySetInnerHTML={{ __html: `window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()` }} />
-      </head>
       <body style={{ fontFamily: 'var(--font-sans), Manrope, system-ui, sans-serif' }}>
         {children}
       </body>
