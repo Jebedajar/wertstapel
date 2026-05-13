@@ -88,7 +88,7 @@ def belege_zu_buchungen(belege: List[Beleg], config: dict) -> List[Buchung]:
 
     for b in belege:
         bez = _kuerzen(b.wertpapierbezeichnung, bez_max)
-        teilfrei_str = " [Teilfreistellung]" if b.teilfreistellung else ""
+        teilfrei_str = "#TF# " if b.teilfreistellung else ""
         ctx = dict(anzahl=_fmt_stueck(b.stueck), bezeichnung=bez,
                    isin=b.isin, auftragsnr=b.auftragsnummer, teilfrei=teilfrei_str)
 
