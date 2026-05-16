@@ -6,13 +6,20 @@ export const PLANS = [
 ]
 
 export const FAQS = [
-  { q: 'Stimmen die Buchungen wirklich?',         a: 'Jeder Buchungssatz wird gegen den Ausmachenden Betrag geprüft. Abweichungen über 0,05 € erscheinen im Plausibilitätsbericht. Die Buchungslogik wurde von einer Steuerberaterin gegen DATEV-Dokumentation 5300857 validiert — Buchwertabgang-Methode, §8b-konform, tranchengetrennt.' },
-  { q: 'Was passiert mit den Daten?',              a: 'Verarbeitung ausschließlich auf EU-Servern in Deutschland. PDF und Ergebnisdateien werden nach Auslieferung automatisch gelöscht. Kein Sprachmodell, kein Drittanbieter, kein Training. AVV auf Anfrage.' },
-  { q: 'Mit welchen Banken funktioniert das?',     a: 'Derzeit: Stadtsparkasse und alle Sparkassen-Gruppen­institute. Weitere Banken befinden sich in Entwicklung. Reichen Sie ein anonymisiertes Muster-PDF ein — wir prüfen die Kompatibilität kostenfrei.' },
-  { q: 'Was wenn ein Beleg nicht erkannt wird?',   a: 'Nicht erkannte Seiten erscheinen mit Typ-Bezeichnung und Grund im Verarbeitungs­protokoll. Kein stiller Fehler. Was nicht automatisch buchbar ist, bleibt manuell buchbar.' },
-  { q: 'Welche Einstellungen kann ich vornehmen?', a: 'SKR03 oder SKR04, Bankkonto (Standard: 1801), optional Mandantennummer. Profil speicherbar für Folgenutzungen.' },
-  { q: 'Darf ich das als Steuerberater einsetzen?',a: 'Wertstapel erbringt Datenverarbeitungs­leistungen nach § 4 Nr. 11 StBerG. Der Buchungsstapel ist ein Buchungsvorschlag zur fachkundigen Prüfung — keine Steuerberatungs­leistung.' },
-  { q: 'Gibt es ein Seitenlimit?',                 a: 'Nein. 20 Seiten und 500 Seiten kosten denselben Exportpreis. Verarbeitungszeit: unter 5 Minuten. Andere Tools begrenzen nach Seitenzahl — wir nicht.' },
+  { q: 'Stimmen die Buchungen wirklich?',
+    a: 'Die Buchungen basieren auf der offiziellen DATEV-Dokumentation (5300857). Jeder Buchungssatz wird gegen den Ausmachenden Betrag überprüft. Alle Abweichungen über 0,05 € lassen sich im Plausibilitätsbericht nachvollziehen. Gebucht wird nach Buchwertabgang-Methode, §8b-konform und tranchengetrennt.' },
+  { q: 'Was passiert mit den Daten?',
+    a: 'Die Verarbeitung erfolgt ausschließlich auf EU-Servern in Deutschland. Das PDF und die Ergebnisdateien werden nach Auslieferung automatisch gelöscht. Kein KI-Sprachmodell und kein Drittanbieter arbeitet mit den Daten.' },
+  { q: 'Mit welchen Banken funktioniert das?',
+    a: 'Derzeit funktioniert Wertstapel mit PDFs aller Sparkassen. Weitere Banken befinden sich in Entwicklung bzw. können auf Wunsch eingebunden werden. Reichen Sie ein anonymisiertes Muster-PDF ein – wir prüfen die Kompatibilität kostenfrei: muster@wertstapel.de' },
+  { q: 'Was wenn ein Beleg nicht erkannt wird?',
+    a: 'Nicht erkannte Seiten erscheinen mit Typ-Bezeichnung und Grund im Verarbeitungsprotokoll. Es gibt somit keine „stillen Fehler“. Was nicht automatisch buchbar ist, bleibt manuell buchbar — so wie bisher.' },
+  { q: 'Welche Einstellungen kann ich vornehmen?',
+    a: 'Wenn Sie ein PDF hochladen, öffnet sich ein Dialogfeld, in dem Sie einige Einstellungen vornehmen können. Sie können die Standard-Einstellungen problemlos belassen. Als Steuerberater sparen Sie durch die Einstellungen mit minimalem Aufwand Zeit beim Import. Mögliche Einstellungen: SKR04 (Kapitalgesellschaften wie GmbH – Standard) oder SKR03 (Personengesellschaften), Bankkonto (Standard: 1801), Mandantennummer.' },
+  { q: 'Darf ich das als Steuerberater einsetzen?',
+    a: 'Ja, Sie dürfen. Der Buchungsstapel ist ein Buchungsvorschlag zur fachkundigen Prüfung — keine Steuerberatungsleistung. Die Verantwortung für den Jahresabschluss verbleibt beim Steuerberater. Wertstapel erbringt Datenverarbeitungsleistungen nach § 4 Nr. 11 StBerG.' },
+  { q: 'Gibt es ein Seitenlimit?',
+    a: 'Nein. Egal ob 5 oder 5.000 Seiten – der Export kostet dasselbe. Die Verarbeitungszeit liegt in der Regel auch für große PDFs deutlich unter 5 Minuten.' },
 ]
 
 export function buildFilenames(mandant: string) {
