@@ -17,7 +17,7 @@ import resend
 
 router = APIRouter()
 
-DB_PATH   = os.getenv("DB_PATH", "/var/www/wertstapel/data/wertstapel.db")
+DB_PATH   = os.getenv("DB_PATH", "/var/www/wertstapel/backend/wertstapel.db")
 BASE_URL  = os.getenv("BASE_URL", "https://wertstapel.de")
 RESEND_KEY = os.getenv("RESEND_API_KEY", "")
 FROM_EMAIL = os.getenv("RESEND_FROM", "wertstapel@spark-innovation.de")

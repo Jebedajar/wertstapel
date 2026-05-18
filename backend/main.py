@@ -49,6 +49,8 @@ PLAN_MAP = {
     "flat":   {"price_id": STRIPE_PRICE_FLAT,   "credits": 0,  "type": "flat",    "months": 12},
 }
 
+from auth import router as auth_router
+
 app = FastAPI(title="Wertstapel API")
 
 app.add_middleware(
@@ -58,6 +60,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(auth_router)
 
 security = HTTPBasic()
 
@@ -96,6 +100,20 @@ def init_db():
                 bank TEXT DEFAULT '1801',
                 mandant TEXT DEFAULT '',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS magic_tokens (
+                email      TEXT NOT NULL,
+                token      TEXT PRIMARY KEY,
+                expires_at TEXT NOT NULL
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS sessions (
+                token      TEXT PRIMARY KEY,
+                email      TEXT NOT NULL,
+                expires_at TEXT NOT NULL
             )
         """)
         # Add columns if upgrading existing DB
