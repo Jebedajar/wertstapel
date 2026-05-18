@@ -176,7 +176,6 @@ export default function ConfigModal({ file, onClose }: Props) {
                 <div style={{ fontFamily: 'var(--font-mono),ui-monospace,monospace', fontSize: 15, fontWeight: 600, color: 'var(--ink)', flexShrink: 0 }}>{p.price} €</div>
               </div>
             ))}
-            <p style={{ fontSize: 12, color: 'var(--fa)', marginTop: 6 }}>· Preise zzgl. MwSt.</p>
           </div>
 
           {/* Email */}

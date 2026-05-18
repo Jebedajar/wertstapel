@@ -297,7 +297,7 @@ export default function Home() {
             ))}
           </div>
           <div style={{ marginTop: 20, textAlign: 'center', fontSize: 13, color: 'var(--mu)' }}>
-            Alle Pakete: keine Buchungsmengen-Limits · kein Ablaufdatum · Rechnung per E-Mail · Zahlung mit Kreditkarte oder Lastschrift
+            Alle Pakete: keine Buchungsmengen-Limits · kein Ablaufdatum · Preise zzgl. MwSt. · Zahlung mit Kreditkarte oder Lastschrift
           </div>
         </div>
       </section>
