@@ -8,7 +8,6 @@ from datetime import datetime, timedelta, date
 from contextlib import contextmanager
 
 import stripe
-import resend
 from fastapi import (
     FastAPI, UploadFile, File, Form, HTTPException,
     Request, BackgroundTasks, Depends
@@ -28,14 +27,13 @@ STRIPE_PRICE_SINGLE   = os.environ["STRIPE_PRICE_SINGLE"]
 STRIPE_PRICE_FIVE     = os.environ["STRIPE_PRICE_FIVE"]
 STRIPE_PRICE_TWENTY   = os.environ["STRIPE_PRICE_TWENTY"]
 STRIPE_PRICE_FLAT     = os.environ["STRIPE_PRICE_FLAT"]
-RESEND_API_KEY        = os.environ["RESEND_API_KEY"]
-RESEND_FROM           = os.environ["RESEND_FROM"]
 ADMIN_PASSWORD        = os.environ["ADMIN_PASSWORD"]
 APP_URL               = os.environ.get("APP_URL", "https://wertstapel.de")
 AGB_VERSION           = "2026-05-18-v1"
 
 stripe.api_key = STRIPE_SECRET_KEY
-resend.api_key = RESEND_API_KEY
+
+from emails import send_email
 
 UPLOAD_DIR = Path("/tmp/uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -116,7 +114,6 @@ def init_db():
                 expires_at TEXT NOT NULL
             )
         """)
-        # Add columns if upgrading existing DB
         for col, default in [
             ("skr",         "'SKR04'"),
             ("bank",        "'1801'"),
@@ -144,18 +141,22 @@ def verify_admin(credentials: HTTPBasicCredentials = Depends(security)):
 
 def _send_done_email(email: str, job_id: str):
     try:
-        resend.Emails.send({
-            "from": RESEND_FROM,
-            "to": email,
-            "subject": "Ihr Buchungsstapel ist fertig — Wertstapel",
-            "html": f"""
-            <p>Hallo,</p>
-            <p>Ihr DATEV-Buchungsstapel wurde erfolgreich erstellt.</p>
-            <p><a href="{APP_URL}/success?job_id={job_id}">Jetzt herunterladen</a></p>
-            <p>Der Download-Link ist 24 Stunden gültig.</p>
-            <p>Ihr Wertstapel-Team</p>
+        send_email(
+            to=email,
+            subject="Ihr Buchungsstapel ist fertig — Wertstapel",
+            html_body=f"""
+            <p style="font-weight:700;font-size:16px;margin-bottom:8px">Ihr Buchungsstapel ist fertig.</p>
+            <p style="color:#5E6B82;font-size:14px;margin-bottom:28px">
+              Ihr DATEV-Buchungsstapel wurde erfolgreich erstellt.<br>
+              Der Download-Link ist 24 Stunden gültig.
+            </p>
+            <a href="{APP_URL}/success?job_id={job_id}"
+               style="display:inline-block;padding:13px 28px;background:#0B1220;color:#fff;
+                      text-decoration:none;border-radius:8px;font-weight:600;font-size:14px">
+              Jetzt herunterladen →
+            </a>
             """,
-        })
+        )
     except Exception as e:
         print(f"Email failed for {email}: {e}")
 

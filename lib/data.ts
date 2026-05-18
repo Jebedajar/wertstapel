@@ -17,7 +17,7 @@ export const FAQS = [
   { q: 'Welche Einstellungen kann ich vornehmen?',
     a: 'Wenn Sie ein PDF hochladen, öffnet sich ein Dialogfeld, in dem Sie einige Einstellungen vornehmen können. Sie können die Standard-Einstellungen problemlos belassen. Als Steuerberater sparen Sie durch die Einstellungen mit minimalem Aufwand Zeit beim Import. Mögliche Einstellungen: SKR04 (Kapitalgesellschaften wie GmbH – Standard) oder SKR03 (Personengesellschaften), Bankkonto (Standard: 1801), Mandantennummer.' },
   { q: 'Darf ich das als Steuerberater einsetzen?',
-    a: 'Ja, Sie dürfen. Der Buchungsstapel ist ein Buchungsvorschlag zur fachkundigen Prüfung — keine Steuerberatungsleistung. Die Verantwortung für den Jahresabschluss verbleibt beim Steuerberater. Wertstapel erbringt Datenverarbeitungsleistungen nach § 4 Nr. 11 StBerG.' },
+    a: 'Ja, Sie dürfen. Der Buchungsstapel ist ein Buchungsvorschlag zur fachkundigen Prüfung durch den Steuerberater — keine Steuerberatungsleistung. Wertstapel verarbeitet Daten maschinell; die fachliche Verantwortung für den Jahresabschluss verbleibt beim Steuerberater.' },
   { q: 'Gibt es ein Seitenlimit?',
     a: 'Nein. Egal ob 5 oder 5.000 Seiten – der Export kostet dasselbe. Die Verarbeitungszeit liegt in der Regel auch für große PDFs deutlich unter 5 Minuten.' },
 ]
