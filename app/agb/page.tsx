@@ -1,10 +1,12 @@
+import LegalLayout from '@/components/LegalLayout'
+
 export const metadata = {
   title: 'AGB – Wertstapel',
 }
 
 export default function Page() {
   return (
-    <>
+    <LegalLayout>
       <style>{`
 /* ── Design Tokens ── */
     :root {
@@ -542,6 +544,6 @@ export default function Page() {
   </div>
 
 </div><!-- /.agb-wrapper -->` }} />
-    </>
+    </LegalLayout>
   )
 }

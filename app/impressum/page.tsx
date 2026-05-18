@@ -1,10 +1,12 @@
+import LegalLayout from '@/components/LegalLayout'
+
 export const metadata = {
   title: 'Impressum – Wertstapel',
 }
 
 export default function Page() {
   return (
-    <>
+    <LegalLayout>
       <style>{`
 :root {
       --color-bg:        #fafaf8;
@@ -238,6 +240,6 @@ export default function Page() {
   </div>
 
 </div><!-- /.imp-wrapper -->` }} />
-    </>
+    </LegalLayout>
   )
 }

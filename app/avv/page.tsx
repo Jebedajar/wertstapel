@@ -1,10 +1,12 @@
+import LegalLayout from '@/components/LegalLayout'
+
 export const metadata = {
   title: 'AVV – Wertstapel',
 }
 
 export default function Page() {
   return (
-    <>
+    <LegalLayout>
       <style>{`
 :root {
       --color-bg:        #fafaf8;
@@ -991,6 +993,6 @@ export default function Page() {
   </div>
 
 </div><!-- /.avv-wrapper -->` }} />
-    </>
+    </LegalLayout>
   )
 }
