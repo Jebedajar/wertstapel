@@ -155,3 +155,41 @@ async def logout(response: Response):
     response = Response(content='{"ok":true}', media_type="application/json")
     response.delete_cookie("ws_session", path="/")
     return response
+
+@router.post("/api/auth/post-purchase/{job_id}")
+async def post_purchase_login(job_id: str, response: Response):
+    """Auto-login after successful Stripe checkout using the job's email."""
+    with get_db() as db:
+        row = db.execute(
+            "SELECT user_email FROM jobs WHERE id = ? AND status IN ('paid', 'processing', 'done')",
+            (job_id,)
+        ).fetchone()
+
+    if not row:
+        raise HTTPException(404, "Job nicht gefunden")
+
+    email = row["user_email"]
+
+    session_token = secrets.token_hex(32)
+    session_exp   = (datetime.utcnow() + timedelta(days=365)).isoformat()
+
+    with get_db() as db:
+        db.execute(
+            "INSERT OR IGNORE INTO users (email, credits, created_at) VALUES (?, 0, ?)",
+            (email, datetime.utcnow().isoformat())
+        )
+        db.execute(
+            "INSERT INTO sessions (token, email, expires_at) VALUES (?, ?, ?)",
+            (session_token, email, session_exp)
+        )
+
+    response.set_cookie(
+        key="ws_session",
+        value=session_token,
+        max_age=COOKIE_MAX_AGE,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        path="/",
+    )
+    return {"ok": True, "email": email}

@@ -36,6 +36,15 @@ function SuccessContent() {
     poll()
   }, [jobId])
 
+  // Auto-login once job is paid or further — sets ws_session cookie
+  useEffect(() => {
+    if (!jobId) return
+    if (status === 'paid' || status === 'processing' || status === 'done') {
+      fetch(`/api/auth/post-purchase/${jobId}`, { method: 'POST', credentials: 'include' })
+        .catch(() => {})
+    }
+  }, [status, jobId])
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
     if (f && f.type === 'application/pdf') { setNewFile(f); setShowModal(true) }

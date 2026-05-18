@@ -202,11 +202,13 @@ export default function ConfigModal({ file, onClose }: Props) {
           )}
 
           {/* Consent checkbox */}
-          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', marginBottom: 16 }}>
+          <label
+            onClick={() => setConsent(c => !c)}
+            style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', marginBottom: 16, userSelect: 'none' as const }}
+          >
             <div
-              onClick={() => setConsent(c => !c)}
               style={{
-                width: 18, height: 18, borderRadius: 4, flexShrink: 0, marginTop: 2,
+                width: 22, height: 22, borderRadius: 5, flexShrink: 0, marginTop: 1,
                 border: `2px solid ${consent ? 'var(--gr)' : 'var(--ln2)'}`,
                 background: consent ? 'var(--gr)' : '#fff',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -214,16 +216,16 @@ export default function ConfigModal({ file, onClose }: Props) {
               }}
             >
               {consent && (
-                <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="2 6 5 9 10 3" />
                 </svg>
               )}
             </div>
             <span style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.55 }}>
               Ich kaufe als Unternehmer (§&nbsp;14 BGB) und akzeptiere die{' '}
-              <a href="/agb" target="_blank" rel="noopener" style={{ color: 'var(--gr)', textDecoration: 'underline' }}>AGB</a>, den{' '}
-              <a href="/avv" target="_blank" rel="noopener" style={{ color: 'var(--gr)', textDecoration: 'underline' }}>Auftragsverarbeitungsvertrag</a> sowie die{' '}
-              <a href="/datenschutz" target="_blank" rel="noopener" style={{ color: 'var(--gr)', textDecoration: 'underline' }}>Datenschutzerklärung</a>.
+              <a href="/agb" target="_blank" rel="noopener" onClick={e => e.stopPropagation()} style={{ color: 'var(--ink2)', textDecoration: 'underline' }}>AGB</a>, den{' '}
+              <a href="/avv" target="_blank" rel="noopener" onClick={e => e.stopPropagation()} style={{ color: 'var(--ink2)', textDecoration: 'underline' }}>Auftragsverarbeitungsvertrag</a> sowie die{' '}
+              <a href="/datenschutz" target="_blank" rel="noopener" onClick={e => e.stopPropagation()} style={{ color: 'var(--ink2)', textDecoration: 'underline' }}>Datenschutzerklärung</a>.
             </span>
           </label>
 
