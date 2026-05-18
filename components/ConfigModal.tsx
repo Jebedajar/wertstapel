@@ -39,6 +39,7 @@ export default function ConfigModal({ file, onClose }: Props) {
   const [mandant, setMandant] = useState('')
   const [plan,    setPlan]    = useState('five')
   const [email,   setEmail]   = useState('')
+  const [consent, setConsent] = useState(false)
   const [editing, setEditing] = useState(false)
   const [phase,   setPhase]   = useState<Phase>('config')
   const [error,   setError]   = useState('')
@@ -64,6 +65,7 @@ export default function ConfigModal({ file, onClose }: Props) {
       form.append('skr', skr)
       form.append('bank', bank)
       form.append('mandant', mandant.trim())
+      form.append('consent', 'true')
 
       const res = await fetch('/api/upload', { method: 'POST', body: form })
       let data: { detail?: string; checkout_url?: string }
@@ -199,9 +201,47 @@ export default function ConfigModal({ file, onClose }: Props) {
             </div>
           )}
 
-          <button onClick={handlePay} style={{ width: '100%', padding: 16, borderRadius: 12, background: 'var(--ink)', color: '#fff', border: 'none', fontSize: 15, fontWeight: 600, letterSpacing: '-.01em', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'pointer' }}>
+          {/* Consent checkbox */}
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', marginBottom: 16 }}>
+            <div
+              onClick={() => setConsent(c => !c)}
+              style={{
+                width: 18, height: 18, borderRadius: 4, flexShrink: 0, marginTop: 2,
+                border: `2px solid ${consent ? 'var(--gr)' : 'var(--ln2)'}`,
+                background: consent ? 'var(--gr)' : '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all .12s',
+              }}
+            >
+              {consent && (
+                <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="2 6 5 9 10 3" />
+                </svg>
+              )}
+            </div>
+            <span style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.55 }}>
+              Ich kaufe als Unternehmer (§&nbsp;14 BGB) und akzeptiere die{' '}
+              <a href="/agb" target="_blank" rel="noopener" style={{ color: 'var(--gr)', textDecoration: 'underline' }}>AGB</a>, den{' '}
+              <a href="/avv" target="_blank" rel="noopener" style={{ color: 'var(--gr)', textDecoration: 'underline' }}>Auftragsverarbeitungsvertrag</a> sowie die{' '}
+              <a href="/datenschutz" target="_blank" rel="noopener" style={{ color: 'var(--gr)', textDecoration: 'underline' }}>Datenschutzerklärung</a>.
+            </span>
+          </label>
+
+          <button
+            onClick={handlePay}
+            disabled={!consent}
+            style={{
+              width: '100%', padding: 16, borderRadius: 12, border: 'none',
+              fontSize: 15, fontWeight: 600, letterSpacing: '-.01em',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+              background: consent ? 'var(--ink)' : 'var(--ln2)',
+              color: consent ? '#fff' : 'var(--mu)',
+              cursor: consent ? 'pointer' : 'not-allowed',
+              transition: 'all .15s',
+            }}
+          >
             {selectedPlan.price} € bezahlen und exportieren
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
               <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
             </svg>
           </button>

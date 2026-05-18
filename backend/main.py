@@ -32,6 +32,7 @@ RESEND_API_KEY        = os.environ["RESEND_API_KEY"]
 RESEND_FROM           = os.environ["RESEND_FROM"]
 ADMIN_PASSWORD        = os.environ["ADMIN_PASSWORD"]
 APP_URL               = os.environ.get("APP_URL", "https://wertstapel.de")
+AGB_VERSION           = "2026-05-18-v1"
 
 stripe.api_key = STRIPE_SECRET_KEY
 resend.api_key = RESEND_API_KEY
@@ -98,7 +99,14 @@ def init_db():
             )
         """)
         # Add columns if upgrading existing DB
-        for col, default in [("skr", "'SKR04'"), ("bank", "'1801'"), ("mandant", "''")]:
+        for col, default in [
+            ("skr",         "'SKR04'"),
+            ("bank",        "'1801'"),
+            ("mandant",     "''"),
+            ("consent_at",  "NULL"),
+            ("consent_ip",  "NULL"),
+            ("agb_version", "NULL"),
+        ]:
             try:
                 conn.execute(f"ALTER TABLE jobs ADD COLUMN {col} TEXT DEFAULT {default}")
             except Exception:
@@ -175,12 +183,14 @@ def process_job(job_id: str):
 
 @app.post("/api/upload")
 async def upload_pdf(
+    request:  Request,
     file:     UploadFile = File(...),
     email:    str = Form(...),
     plan:     str = Form("single"),
     skr:      str = Form("SKR04"),
     bank:     str = Form("1801"),
     mandant:  str = Form(""),
+    consent:  str = Form("false"),
 ):
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(400, "Nur PDF-Dateien erlaubt")
@@ -192,16 +202,20 @@ async def upload_pdf(
     plan_cfg = PLAN_MAP.get(plan)
     if not plan_cfg:
         raise HTTPException(400, "Ungültiger Plan")
+    if consent != "true":
+        raise HTTPException(400, "Bitte AGB, AVV und Datenschutzerklärung akzeptieren")
 
-    job_id   = str(uuid.uuid4())
+    job_id      = str(uuid.uuid4())
+    consent_at  = datetime.utcnow().isoformat()
+    consent_ip  = (request.headers.get("x-real-ip") or request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else ""))
     pdf_path = UPLOAD_DIR / f"{job_id}.pdf"
     pdf_path.write_bytes(content)
 
     with get_db() as conn:
         conn.execute("INSERT OR IGNORE INTO users (email) VALUES (?)", (email,))
         conn.execute(
-            "INSERT INTO jobs (id, user_email, plan_id, status, pdf_path, skr, bank, mandant) VALUES (?, ?, ?, 'awaiting_payment', ?, ?, ?, ?)",
-            (job_id, email, plan_cfg["price_id"], str(pdf_path), skr, bank, mandant),
+            "INSERT INTO jobs (id, user_email, plan_id, status, pdf_path, skr, bank, mandant, consent_at, consent_ip, agb_version) VALUES (?, ?, ?, 'awaiting_payment', ?, ?, ?, ?, ?, ?, ?)",
+            (job_id, email, plan_cfg["price_id"], str(pdf_path), skr, bank, mandant, consent_at, consent_ip, AGB_VERSION),
         )
 
     session = stripe.checkout.Session.create(
