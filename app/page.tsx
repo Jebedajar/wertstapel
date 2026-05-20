@@ -152,7 +152,7 @@ export default function Home() {
       {/* HOW IT WORKS */}
       <section id="how" className="sec">
         <div className="wrap">
-          <SH kicker="3 Schritte. Keine Einarbeitung." title="Wie es funktioniert" sub="Vom PDF zur DATEV-Importdatei in unter 5 Minuten — egal ob 5 oder 500 Seiten." />
+          <SH kicker="3 Schritte. Keine Einarbeitung." title="Wie es funktioniert" sub="Vom PDF zur DATEV-Importdatei in unter 5 Minuten — egal ob 5 oder 5.000 Seiten." />
           <div className="grid-3">
             {[
               { n: '01', title: 'PDF hochladen',              desc: 'Laden Sie einfach das vollständige Orderabrechnungs-PDF Ihrer Bank hoch.' },
@@ -245,7 +245,7 @@ export default function Home() {
             {[
               { col: 'Wertstapel', good: true, items: [
                 { label: 'Deterministisch',  text: 'Feste Regeln auf Basis offizieller DATEV-Dokumentation. Buchungsvorschlag nachvollziehbar.' },
-                { label: 'Kein Volumenlimit', text: 'Ein Export kostet immer dasselbe — egal ob 5 oder 500 Seiten.' },
+                { label: 'Kein Volumenlimit', text: 'Ein Export kostet immer dasselbe — egal ob 5 oder 5.000 Seiten.' },
                 { label: 'Kein Setup',        text: 'PDF hochladen. Warten. Fertig. Neue Banken werden auf Anfrage implementiert.' },
               ]},
               { col: 'Andere Tools', good: false, items: [
@@ -279,7 +279,7 @@ export default function Home() {
       {/* PRICING */}
       <section id="pricing" className="sec" style={{ background: 'var(--bg)' }}>
         <div className="wrap">
-          <SH kicker="Preise" title={<>Kein Seitenlimit.<br />Auf keinem Paket.</>} sub="Ein Export kostet dasselbe — egal ob das PDF 5 oder 500 Seiten hat. Pakete verfallen nicht." />
+          <SH kicker="Preise" title={<>Kein Seitenlimit.<br />Auf keinem Paket.</>} sub="Ein Export kostet dasselbe — egal ob das PDF 5 oder 5.000 Seiten hat. Pakete verfallen nicht." />
           <div className="grid-4">
             {PLANS.map(p => (
               <div key={p.id} className={`plan-card${p.popular ? ' popular' : ''}`}>

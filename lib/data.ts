@@ -2,7 +2,7 @@ export const PLANS = [
   { id: 'single', label: 'Einzelexport',  price: '200',   sub: 'pro Export',          perExport: '200 € pro Export',      note: 'Für den ersten Test',                popular: false },
   { id: 'five',   label: '5er-Paket',     price: '750',   sub: '= 150 € pro Export',  perExport: '150 € pro Export',      note: 'Beliebtester Einstieg',              popular: true  },
   { id: 'twenty', label: '20er-Paket',    price: '2.400', sub: '= 120 € pro Export',  perExport: '120 € pro Export',      note: 'Kanzleien mit aktivem Depot­volumen',popular: false },
-  { id: 'flat',   label: 'Jahresflat',    price: '3.600', sub: 'unbegrenzte Exports',  perExport: 'Alle Exports inklusive', note: 'Ab ca. 20 Exports/Jahr rentabel',   popular: false },
+  { id: 'flat',   label: 'Jahresflat',    price: '3.600', sub: '1 Jahr unbegrenzte Exports',  perExport: '1 Jahr unbegrenzte Exports', note: 'Ab ca. 20 Exports/Jahr rentabel',   popular: false },
 ]
 
 export const FAQS = [

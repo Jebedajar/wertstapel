@@ -33,7 +33,8 @@ AGB_VERSION           = "2026-05-18-v1"
 
 stripe.api_key = STRIPE_SECRET_KEY
 
-from emails import send_email
+from emails import send_email, send_flat_expiry_reminder
+from flat_utils import apply_flat_purchase, apply_credits_purchase
 
 UPLOAD_DIR = Path("/tmp/uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -83,6 +84,7 @@ def init_db():
                 email TEXT UNIQUE NOT NULL,
                 credits INTEGER DEFAULT 0,
                 flat_until DATE,
+                reminder_sent INTEGER DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
@@ -126,6 +128,10 @@ def init_db():
                 conn.execute(f"ALTER TABLE jobs ADD COLUMN {col} TEXT DEFAULT {default}")
             except Exception:
                 pass
+        try:
+            conn.execute("ALTER TABLE users ADD COLUMN reminder_sent INTEGER NOT NULL DEFAULT 0")
+        except Exception:
+            pass
 
 
 init_db()
@@ -279,20 +285,12 @@ async def stripe_webhook(request: Request, background_tasks: BackgroundTasks):
         if not job_id or not email:
             return {"ok": False, "reason": "missing metadata"}
 
+        if plan_type == "flat":
+            apply_flat_purchase(email, months if months > 0 else 12)
+        else:
+            apply_credits_purchase(email, credits)
+
         with get_db() as conn:
-            if plan_type == "flat":
-                flat_until = (date.today() + timedelta(days=months * 30)).isoformat()
-                conn.execute(
-                    """INSERT INTO users (email, flat_until) VALUES (?, ?)
-                       ON CONFLICT(email) DO UPDATE SET flat_until=excluded.flat_until""",
-                    (email, flat_until),
-                )
-            else:
-                conn.execute(
-                    """INSERT INTO users (email, credits) VALUES (?, ?)
-                       ON CONFLICT(email) DO UPDATE SET credits=credits+excluded.credits""",
-                    (email, credits),
-                )
             conn.execute("UPDATE jobs SET status='paid' WHERE id=?", (job_id,))
 
         background_tasks.add_task(process_job, job_id)
