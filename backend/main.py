@@ -161,6 +161,15 @@ def _send_done_email(email: str, job_id: str):
                       text-decoration:none;border-radius:8px;font-weight:600;font-size:14px">
               Jetzt herunterladen →
             </a>
+            <div style="margin-top:28px;padding-top:20px;border-top:1px solid #e4e2db;font-size:12px;color:#5E6B82;line-height:1.7">
+              <strong style="color:#0B1220;font-size:13px">Hinweis für Ihren Steuerberater</strong><br>
+              Der Buchungsstapel basiert auf der Buchwertabgang-Methode (DATEV-Dok. 5300857), tranchengetrennt nach FIFO, §8b KStG-konform.<br><br>
+              Buchungstexte mit folgenden Markierungen sind zur Prüfung gekennzeichnet:<br>
+              · <strong>#TF#</strong> — Teilfreistellungssatz (Fondstyp und GmbH-Satz prüfen)<br>
+              · <strong>#DIV#</strong> — Dividende (§8b-Einordnung: Streubesitz oder Schachtelbeteiligung)<br>
+              · <strong>#FONDS#</strong> — Fondsausschüttung (TF-Satz GmbH: Aktienfonds 80%, Mischfonds 40%)<br><br>
+              Alle Buchungen sind Buchungsvorschläge zur fachkundigen Prüfung.
+            </div>
             """,
         )
     except Exception as e:

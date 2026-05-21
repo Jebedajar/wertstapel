@@ -16,7 +16,7 @@ function SuccessContent() {
 
   const [status,    setStatus]    = useState<Status>('loading')
   const [files,     setFiles]     = useState<string[]>([])
-  const [newFile,   setNewFile]   = useState<File | null>(null)
+  const [newFiles,  setNewFiles]  = useState<File[]>([])
   const [showModal, setShowModal] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -46,8 +46,8 @@ function SuccessContent() {
   }, [status, jobId])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0]
-    if (f && f.type === 'application/pdf') { setNewFile(f); setShowModal(true) }
+    const fs = Array.from(e.target.files || []).filter(f => f.type === 'application/pdf')
+    if (fs.length) { setNewFiles(fs); setShowModal(true) }
   }
 
   const statusConfig: Record<Status, { icon: string; title: string; text: string }> = {
@@ -100,6 +100,27 @@ function SuccessContent() {
                 </a>
               ))}
             </div>
+
+            <div style={{ marginTop: 20, padding: '16px 18px', borderRadius: 12, background: 'var(--bg)', border: '1px solid var(--ln)', textAlign: 'left' }}>
+              <div style={{ fontFamily: 'var(--font-mono),ui-monospace,monospace', fontSize: 11, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--ink)', fontWeight: 600, marginBottom: 10 }}>Hinweise für Ihren Steuerberater</div>
+              <div style={{ fontSize: 13, color: 'var(--ink2)', fontWeight: 600, marginBottom: 4 }}>Buchungslogik</div>
+              <p style={{ fontSize: 12, color: 'var(--mu)', lineHeight: 1.6, marginBottom: 12 }}>
+                Der Buchungsstapel wurde nach der Buchwertabgang-Methode (DATEV-Dok.&nbsp;5300857) erstellt. Verkäufe werden tranchengetrennt nach FIFO verbucht. Die Buchungssätze entsprechen den Anforderungen des §8b KStG für Kapitalgesellschaften (SKR04).
+              </p>
+              <div style={{ fontSize: 13, color: 'var(--ink2)', fontWeight: 600, marginBottom: 6 }}>Markierungen im Buchungstext</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {[
+                  ['#TF#', 'Teilfreistellung erkannt. Der Buchungstext weist auf eine steuerliche Teilfreistellung hin (§ 20 InvStG). Bitte prüfen ob der auf dem Bankbeleg ausgewiesene Satz (meist 30%) dem tatsächlich zutreffenden Satz für diese GmbH entspricht (Aktienfonds 80%, Mischfonds 40%).'],
+                  ['#DIV#', 'Dividendenbuchung. Bitte §8b-Einordnung prüfen: Streubesitz unter 10% → §8b Abs. 4 KStG (voll steuerpflichtig). Beteiligung ab 10% → §8b Abs. 1 KStG (95% steuerfrei). Gegenkonto ggf. anpassen.'],
+                  ['#FONDS#', 'Fondsertrags-Ausschüttung. Der ausgewiesene Teilfreistellungssatz entspricht dem Privatanleger-Satz der Bank. Für GmbHs gilt bei Aktienfonds (>51% Aktienquote) ein TF-Satz von 80% — bitte Bemessungsgrundlage und Steuerbetrag ggf. korrigieren.'],
+                ].map(([tag, text]) => (
+                  <div key={tag} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                    <span style={{ fontFamily: 'var(--font-mono),ui-monospace,monospace', fontSize: 11, background: 'var(--bga)', border: '1px solid var(--ln2)', borderRadius: 4, padding: '2px 6px', flexShrink: 0, marginTop: 1, color: 'var(--ink)' }}>{tag}</span>
+                    <span style={{ fontSize: 12, color: 'var(--mu)', lineHeight: 1.6 }}>{text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
             <p style={{ fontSize: 13, color: 'var(--fa)', lineHeight: 1.6 }}>
               Sie erhalten die Download-Links zusätzlich per Mail.<br />
               Die Links sind 24h gültig.
@@ -136,7 +157,7 @@ function SuccessContent() {
         </a>
       </div>
 
-      {showModal && <ConfigModal file={newFile} onClose={() => { setShowModal(false); setNewFile(null); if (fileRef.current) fileRef.current.value = '' }} />}
+      {showModal && <ConfigModal files={newFiles} onClose={() => { setShowModal(false); setNewFiles([]); if (fileRef.current) fileRef.current.value = '' }} />}
     </main>
   )
 }

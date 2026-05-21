@@ -36,7 +36,7 @@ const SH = ({ kicker, title, sub, dark = false }: { kicker?: string; title: Reac
 )
 
 /* ── Upload zone ── */
-function UploadZone({ onFile }: { onFile: (f: File) => void }) {
+function UploadZone({ onFiles }: { onFiles: (fs: File[]) => void }) {
   const [drag, setDrag] = useState(false)
   const ref = useRef<HTMLInputElement>(null)
   return (
@@ -44,14 +44,14 @@ function UploadZone({ onFile }: { onFile: (f: File) => void }) {
       onClick={() => ref.current?.click()}
       onDragOver={e => { e.preventDefault(); setDrag(true) }}
       onDragLeave={() => setDrag(false)}
-      onDrop={e => { e.preventDefault(); setDrag(false); onFile(e.dataTransfer.files[0]) }}>
-      <input ref={ref} type="file" accept=".pdf" style={{ display: 'none' }} onChange={e => { if (e.target.files?.[0]) onFile(e.target.files[0]) }} />
+      onDrop={e => { e.preventDefault(); setDrag(false); const fs = Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf'); if (fs.length) onFiles(fs) }}>
+      <input ref={ref} type="file" accept=".pdf" multiple style={{ display: 'none' }} onChange={e => { const fs = Array.from(e.target.files || []).filter(f => f.type === 'application/pdf'); if (fs.length) onFiles(fs) }} />
       <div className="upload-inner">
         <div style={{ width: 72, height: 72, borderRadius: 18, background: 'var(--gr)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5" /><path d="M5 12l7-7 7 7" /></svg>
         </div>
         <div style={{ flex: 1, minWidth: 160, textAlign: 'left' }}>
-          <div style={{ fontSize: 'clamp(17px,2.5vw,22px)', fontWeight: 600, color: 'var(--ink)', marginBottom: 6, letterSpacing: '-.01em' }}>PDF hier ablegen oder klicken</div>
+          <div style={{ fontSize: 'clamp(17px,2.5vw,22px)', fontWeight: 600, color: 'var(--ink)', marginBottom: 6, letterSpacing: '-.01em' }}>PDFs hier ablegen oder klicken</div>
           <div className="mono" style={{ fontSize: 12, color: 'var(--mu)' }}>Orderabrechnungen · beliebig viele Seiten · bis 100 MB</div>
         </div>
         <div className="mono" style={{ fontSize: 11, padding: '8px 12px', background: 'var(--bga)', borderRadius: 8, color: 'var(--ink2)', letterSpacing: '.05em' }}>.PDF</div>
@@ -81,12 +81,12 @@ const Chk = ({ color = 'var(--a2)' }: { color?: string }) => (
    MAIN PAGE
 ══════════════════════════════════════════════════ */
 export default function Home() {
-  const [file,      setFile]      = useState<File | null>(null)
+  const [files,     setFiles]     = useState<File[]>([])
   const [showModal, setShowModal] = useState(false)
   
   const [navOpen,   setNavOpen]   = useState(false)
 
-  const handleFile = useCallback((f: File) => { if (f.type === 'application/pdf') { setFile(f); setShowModal(true) } }, [])
+  const handleFiles = useCallback((fs: File[]) => { setFiles(fs); setShowModal(true) }, [])
   const scrollUp = () => { setNavOpen(false); document.getElementById('hero-upload')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) }
 
   return (
@@ -122,7 +122,7 @@ export default function Home() {
             Schluss mit dem manuellen Buchen von Wertpapier-Transaktionen: Sie laden das PDF ihrer Depot-Bank hoch, wir liefern in 5 Minuten den DATEV-Stapel — fertig zum Import und mit Plausibilitätscheck. Keine Seitenbegrenzung. Kein Abo.
           </p>
           <div id="hero-upload" className="fu2" style={{ width: '100%', maxWidth: 720 }}>
-            <UploadZone onFile={handleFile} />
+            <UploadZone onFiles={handleFiles} />
             <div style={{ display: 'flex', gap: 20, marginTop: 22, flexWrap: 'wrap', justifyContent: 'center' }}>
               {['§8b-konform', 'Server in Deutschland', 'DSGVO-konform', 'Made in Germany'].map(t => (
                 <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
@@ -357,7 +357,7 @@ export default function Home() {
         </div>
       </footer>
 
-      {showModal && <ConfigModal file={file} onClose={() => setShowModal(false)} />}
+      {showModal && <ConfigModal files={files} onClose={() => setShowModal(false)} />}
     </>
   )
 }

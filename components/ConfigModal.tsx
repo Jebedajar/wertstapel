@@ -6,7 +6,7 @@ import LoadingLogo from './LoadingLogo'
 
 type Phase = 'config' | 'paying' | 'redirecting'
 
-interface Props { file: File | null; onClose: () => void }
+interface Props { files: File[]; onClose: () => void }
 
 const Eyebrow = ({ children }: { children: React.ReactNode }) => (
   <div style={{ fontFamily: 'var(--font-mono),ui-monospace,monospace', fontSize: 11, letterSpacing: '.08em', textTransform: 'uppercase' as const, color: 'var(--ink)', fontWeight: 600, marginBottom: 8 }}>
@@ -33,7 +33,7 @@ function Radio({ val, current, onSet }: { val: string; current: string; onSet: (
   )
 }
 
-export default function ConfigModal({ file, onClose }: Props) {
+export default function ConfigModal({ files, onClose }: Props) {
   const [skr,     setSkr]     = useState('SKR04')
   const [bank,    setBank]    = useState('1801')
   const [mandant, setMandant] = useState('')
@@ -45,35 +45,42 @@ export default function ConfigModal({ file, onClose }: Props) {
   const [error,   setError]   = useState('')
 
   const selectedPlan = PLANS.find(p => p.id === plan)!
+  const multi = files.length > 1
 
   const handlePay = async () => {
     if (!email.trim() || !email.includes('@')) {
       setError('Bitte gib eine gültige E-Mail-Adresse ein.')
       return
     }
-    if (!file) {
+    if (files.length === 0) {
       setError('Keine Datei ausgewählt.')
       return
     }
     setError('')
     setPhase('paying')
     try {
-      const form = new FormData()
-      form.append('file', file)
-      form.append('email', email.trim())
-      form.append('plan', plan)
-      form.append('skr', skr)
-      form.append('bank', bank)
-      form.append('mandant', mandant.trim())
-      form.append('consent', 'true')
+      let firstCheckoutUrl: string | undefined
 
-      const res = await fetch('/api/upload', { method: 'POST', body: form })
-      let data: { detail?: string; checkout_url?: string }
-      try { data = await res.json() } catch { data = { detail: 'Serverfehler – bitte versuche es erneut.' } }
+      for (const file of files) {
+        const form = new FormData()
+        form.append('file', file)
+        form.append('email', email.trim())
+        form.append('plan', plan)
+        form.append('skr', skr)
+        form.append('bank', bank)
+        form.append('mandant', mandant.trim())
+        form.append('consent', 'true')
 
-      if (!res.ok) throw new Error(data.detail ?? `Fehler ${res.status}`)
+        const res = await fetch('/api/upload', { method: 'POST', body: form })
+        let data: { detail?: string; checkout_url?: string }
+        try { data = await res.json() } catch { data = { detail: 'Serverfehler – bitte versuche es erneut.' } }
+
+        if (!res.ok) throw new Error(data.detail ?? `Fehler ${res.status}`)
+        if (!firstCheckoutUrl) firstCheckoutUrl = data.checkout_url
+      }
+
       setPhase('redirecting')
-      window.location.href = data.checkout_url!
+      window.location.href = firstCheckoutUrl!
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Unbekannter Fehler')
       setPhase('config')
@@ -89,7 +96,7 @@ export default function ConfigModal({ file, onClose }: Props) {
               <LoadingLogo size={80} />
             </div>
             <h3 className="display" style={{ fontSize: 24, marginBottom: 8, color: 'var(--ink)' }}>
-              {phase === 'paying' ? 'PDF wird hochgeladen…' : 'Weiterleitung zu Stripe…'}
+              {phase === 'paying' ? (multi ? 'PDFs werden hochgeladen…' : 'PDF wird hochgeladen…') : 'Weiterleitung zu Stripe…'}
             </h3>
             <div style={{ fontSize: 14, color: 'var(--mu)' }}>Einen Moment bitte.</div>
           </div>
@@ -105,8 +112,12 @@ export default function ConfigModal({ file, onClose }: Props) {
         <div style={{ padding: '26px 32px', borderBottom: '1px solid var(--ln)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
-              <h3 className="display" style={{ fontSize: 24, marginBottom: 6, color: 'var(--ink)' }}>Ihr PDF ist bereit.</h3>
-              <div style={{ fontFamily: 'var(--font-mono),ui-monospace,monospace', fontSize: 12, color: 'var(--mu)' }}>{file?.name ?? 'Orderabrechnungen.pdf'}</div>
+              <h3 className="display" style={{ fontSize: 24, marginBottom: 6, color: 'var(--ink)' }}>
+                {multi ? 'Ihre PDFs sind bereit.' : 'Ihr PDF ist bereit.'}
+              </h3>
+              <div style={{ fontFamily: 'var(--font-mono),ui-monospace,monospace', fontSize: 12, color: 'var(--mu)' }}>
+                {multi ? `(${files.length}) Dateien` : (files[0]?.name ?? 'Orderabrechnungen.pdf')}
+              </div>
             </div>
             <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, color: 'var(--fa)', lineHeight: 1, padding: 4, cursor: 'pointer' }}>×</button>
           </div>
@@ -176,6 +187,7 @@ export default function ConfigModal({ file, onClose }: Props) {
                 <div style={{ fontFamily: 'var(--font-mono),ui-monospace,monospace', fontSize: 15, fontWeight: 600, color: 'var(--ink)', flexShrink: 0 }}>{p.price} €</div>
               </div>
             ))}
+            <p style={{ fontSize: 12, color: 'var(--fa)', marginTop: 6 }}>· Preise zzgl. MwSt.</p>
           </div>
 
           {/* Email */}
