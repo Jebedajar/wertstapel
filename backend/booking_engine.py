@@ -88,7 +88,7 @@ def belege_zu_buchungen(belege: List[Beleg], config: dict) -> List[Buchung]:
 
     for b in belege:
         bez = _kuerzen(b.wertpapierbezeichnung, bez_max)
-        teilfrei_str = "#TF# " if b.teilfreistellung else ""
+        teilfrei_str = " [Teilfreistellung]" if b.teilfreistellung else ""
         ctx = dict(anzahl=_fmt_stueck(b.stueck), bezeichnung=bez,
                    isin=b.isin, auftragsnr=b.auftragsnummer, teilfrei=teilfrei_str)
 
@@ -184,5 +184,57 @@ def belege_zu_buchungen(belege: List[Beleg], config: dict) -> List[Buchung]:
                         kategorie="Buchwertabgang" + (" (4904)" if ist_gewinn else " (6904)"),
                         quell_seite=b.seite,
                     ))
+
+    return buchungen
+
+
+def belege_zu_buchungen_alle_typen(belege, config):
+    """Wie belege_zu_buchungen, erweitertet um DIVIDENDE und FONDSERTRAG."""
+    from decimal import Decimal
+
+    # KAUF und VERKAUF via bestehende Funktion
+    kv_belege = [b for b in belege if b.typ in ("KAUF", "VERKAUF")]
+    buchungen = belege_zu_buchungen(kv_belege, config)
+
+    K   = config["konten"]
+    T   = config["buchungstexte"]
+    OPT = config.get("options", {})
+    bez_max = OPT.get("kuerze_bezeichnung_auf", 30)
+    konto_bank = K["bank"]["nr"]
+
+    for b in belege:
+        if b.typ not in ("DIVIDENDE", "FONDSERTRAG"):
+            continue
+
+        bez = _kuerzen(b.wertpapierbezeichnung, bez_max)
+        teilfrei_str = (
+            f" | TF-Satz {b.teilfrei_satz}%" if b.typ == "FONDSERTRAG" and b.teilfrei_satz else ""
+        )
+        ctx = dict(
+            anzahl=_fmt_stueck(b.stueck), bezeichnung=bez,
+            isin=b.isin, auftragsnr=b.auftragsnummer, teilfrei=teilfrei_str
+        )
+
+        konto_key = "dividende_ertraege" if b.typ == "DIVIDENDE" else "fondsertrag_ertraege"
+        konto_ertrag = K.get(konto_key, {}).get("nr", "2750")
+        text_key = "dividende" if b.typ == "DIVIDENDE" else "fondsertrag"
+        text_template = T.get(text_key, f"#{b.typ}# {{bezeichnung}} {{isin}}")
+
+        buchungen.append(Buchung(
+            umsatz=b.ausmachender_betrag,
+            soll_haben="S",
+            konto=konto_bank,
+            gegenkonto=konto_ertrag,
+            belegdatum=b.schlusstag,
+            belegfeld_1=b.auftragsnummer,
+            belegfeld_2=b.rechnungsnummer or "",
+            buchungstext=text_template.format(**ctx)[:60],
+            isin=b.isin,
+            wkn=b.wkn or "",
+            stueck=b.stueck,
+            kurs=b.ausfuehrungskurs or Decimal("0"),
+            kategorie=b.typ,
+            quell_seite=b.seite,
+        ))
 
     return buchungen

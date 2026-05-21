@@ -41,6 +41,14 @@
       "gebuehren_vk_verlust": {
         "nr": "6858",
         "name": "Veraeu.kosten §8b Abs.3"
+      },
+      "dividende_ertraege": {
+        "nr": "2750",
+        "name": "Dividenden und aehnliche Ertraege"
+      },
+      "fondsertrag_ertraege": {
+        "nr": "2750",
+        "name": "Ertraege aus Investmentfonds"
       }
     },
     "SKR03": {
@@ -77,14 +85,24 @@
       "gebuehren_vk_verlust": {
         "nr": "4977",
         "name": "Veraeu.kosten §8b Abs.3"
+      },
+      "dividende_ertraege": {
+        "nr": "1740",
+        "name": "Dividenden und aehnliche Ertraege"
+      },
+      "fondsertrag_ertraege": {
+        "nr": "1740",
+        "name": "Ertraege aus Investmentfonds"
       }
     }
   },
   "buchungstexte": {
     "kauf": "Kauf {anzahl} {bezeichnung} ({isin})",
-    "verkauf_erloes": "{teilfrei}Verkauf {anzahl} {bezeichnung} ({isin})",
+    "verkauf_erloes": "Verkauf {anzahl} {bezeichnung} ({isin}){teilfrei}",
     "verkauf_gebuehren": "Gebuehren Verkauf {isin} (Auftrag {auftragsnr})",
-    "verkauf_abgang": "Abgang Buchwert {isin} (Auftrag {auftragsnr})"
+    "verkauf_abgang": "Abgang Buchwert {isin} (Auftrag {auftragsnr})",
+    "dividende": "#DIV# Dividende {anzahl} {bezeichnung} | ISIN {isin}",
+    "fondsertrag": "#FONDS# Fondsertrag {anzahl} {bezeichnung}{teilfrei} | ISIN {isin}"
   },
   "options": {
     "kuerze_bezeichnung_auf": 30,
