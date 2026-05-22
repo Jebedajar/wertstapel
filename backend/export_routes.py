@@ -1,20 +1,18 @@
 """
 export_routes.py — Direkter Export-Start für eingeloggte Nutzer mit Guthaben.
-
-Einzubinden in main.py:
-    from export_routes import router as export_router
-    app.include_router(export_router)
 """
 
 import os, sqlite3, uuid
 from datetime import date, datetime
-from fastapi import APIRouter, Request, HTTPException
-from pydantic import BaseModel
+from pathlib import Path
+from fastapi import APIRouter, Request, HTTPException, UploadFile, File, Form, BackgroundTasks
 
 from auth import get_session_user
 
 router = APIRouter()
 DB_PATH = os.getenv("DB_PATH", "/var/www/wertstapel/backend/wertstapel.db")
+UPLOAD_DIR = Path("/tmp/uploads")
+UPLOAD_DIR.mkdir(exist_ok=True)
 
 
 def get_db():
@@ -23,24 +21,18 @@ def get_db():
     return conn
 
 
-class ExportStartRequest(BaseModel):
-    skr:     str = "SKR04"
-    bank:    str = "1801"
-    mandant: str = ""
-
-
 @router.post("/api/export/start")
-async def export_start(body: ExportStartRequest, request: Request):
+async def export_start(
+    background_tasks: BackgroundTasks,
+    request:  Request,
+    file:     UploadFile = File(...),
+    skr:      str = Form("SKR04"),
+    bank:     str = Form("1801"),
+    mandant:  str = Form(""),
+):
     """
     Startet einen Export direkt aus dem Guthaben — ohne Stripe.
-    Wird nur aufgerufen wenn der Nutzer eingeloggt ist und Credits hat.
-
-    Ablauf:
-    1. Session prüfen
-    2. Guthaben prüfen (Credits > 0 oder Flat gültig)
-    3. Credits um 1 reduzieren (bei Flat: keine Reduktion)
-    4. Job-ID anlegen
-    5. Job-ID zurückgeben — Frontend startet Verarbeitung
+    Nimmt Datei-Upload entgegen, prüft Guthaben, legt Job an und startet Verarbeitung.
     """
     user = get_session_user(request)
     if not user:
@@ -61,7 +53,18 @@ async def export_start(body: ExportStartRequest, request: Request):
             detail="Kein Guthaben. Bitte ein Paket erwerben."
         )
 
-    job_id = str(uuid.uuid4())
+    allowed_ext = {".pdf", ".xlsx", ".xls", ".csv"}
+    file_ext = Path(file.filename or "").suffix.lower()
+    if not file_ext or file_ext not in allowed_ext:
+        raise HTTPException(400, "Nur PDF-, XLSX-, XLS- oder CSV-Dateien erlaubt")
+
+    content = await file.read()
+    if len(content) > 100 * 1024 * 1024:
+        raise HTTPException(400, "Datei zu groß (max. 100 MB)")
+
+    job_id   = str(uuid.uuid4())
+    pdf_path = UPLOAD_DIR / f"{job_id}{file_ext}"
+    pdf_path.write_bytes(content)
 
     with get_db() as db:
         if not flat_valid:
@@ -72,24 +75,24 @@ async def export_start(body: ExportStartRequest, request: Request):
 
         db.execute(
             """INSERT INTO jobs
-               (id, user_email, plan_id, status, created_at)
-               VALUES (?, ?, ?, ?, ?)""",
+               (id, user_email, plan_id, status, pdf_path, skr, bank, mandant, created_at)
+               VALUES (?, ?, ?, 'paid', ?, ?, ?, ?, ?)""",
             (
                 job_id,
                 email,
                 "flat" if flat_valid else "credits",
-                "processing",
+                str(pdf_path),
+                skr,
+                bank,
+                mandant,
                 datetime.utcnow().isoformat(),
             )
         )
 
-    return {
-        "ok":      True,
-        "job_id":  job_id,
-        "skr":     body.skr,
-        "bank":    body.bank,
-        "mandant": body.mandant,
-    }
+    from main import process_job
+    background_tasks.add_task(process_job, job_id)
+
+    return {"ok": True, "job_id": job_id}
 
 
 @router.get("/api/export/status/{job_id}")

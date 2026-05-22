@@ -77,24 +77,23 @@ export default function ConfigModal({ files, onClose, user }: Props) {
     setError('')
     setPhase('paying')
     try {
+      let lastJobId: string | undefined
       for (const file of files) {
         const form = new FormData()
         form.append('file', file)
-        form.append('email', user!.email)
-        form.append('plan', 'credits')
         form.append('skr', skr)
         form.append('bank', bank)
         form.append('mandant', mandant.trim())
-        form.append('consent', 'true')
 
-        const res = await fetch('/api/upload', { method: 'POST', body: form })
-        let data: { detail?: string; checkout_url?: string }
+        const res = await fetch('/api/export/start', { method: 'POST', body: form, credentials: 'include' })
+        let data: { detail?: string; job_id?: string }
         try { data = await res.json() } catch { data = { detail: 'Serverfehler – bitte versuche es erneut.' } }
 
         if (!res.ok) throw new Error(data.detail ?? `Fehler ${res.status}`)
+        lastJobId = data.job_id
       }
       setPhase('redirecting')
-      window.location.href = '/success'
+      window.location.href = lastJobId ? `/success?job_id=${lastJobId}` : '/success'
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Unbekannter Fehler')
       setPhase('config')
