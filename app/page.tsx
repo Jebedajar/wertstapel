@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 const NavAccount = dynamic(() => import('@/components/NavAccount'), { ssr: false })
 import { PLANS, FAQS } from '@/lib/data'
@@ -81,8 +81,16 @@ const Chk = ({ color = 'var(--a2)' }: { color?: string }) => (
    MAIN PAGE
 ══════════════════════════════════════════════════ */
 export default function Home() {
-  const [files,     setFiles]     = useState<File[]>([])
-  const [showModal, setShowModal] = useState(false)
+  const [files,       setFiles]       = useState<File[]>([])
+  const [showModal,   setShowModal]   = useState(false)
+  const [currentUser, setCurrentUser] = useState<any>(null)
+
+  useEffect(() => {
+    fetch('/api/auth/me', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(setCurrentUser)
+      .catch(() => null)
+  }, [])
   
   const [navOpen,   setNavOpen]   = useState(false)
 
@@ -357,7 +365,7 @@ export default function Home() {
         </div>
       </footer>
 
-      {showModal && <ConfigModal files={files} onClose={() => setShowModal(false)} />}
+      {showModal && <ConfigModal files={files} onClose={() => setShowModal(false)} user={currentUser} />}
     </>
   )
 }
