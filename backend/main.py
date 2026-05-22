@@ -49,6 +49,7 @@ PLAN_MAP = {
 }
 
 from auth import router as auth_router
+from export_routes import router as export_router
 
 app = FastAPI(title="Wertstapel API")
 
@@ -61,6 +62,7 @@ app.add_middleware(
 )
 
 app.include_router(auth_router)
+app.include_router(export_router)
 
 security = HTTPBasic()
 
