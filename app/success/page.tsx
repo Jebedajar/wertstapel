@@ -113,6 +113,7 @@ function SuccessContent() {
                   ['#TF#', 'Teilfreistellung erkannt. Der Buchungstext weist auf eine steuerliche Teilfreistellung hin (§ 20 InvStG). Bitte prüfen ob der auf dem Bankbeleg ausgewiesene Satz (meist 30%) dem tatsächlich zutreffenden Satz für diese GmbH entspricht (Aktienfonds 80%, Mischfonds 40%).'],
                   ['#DIV#', 'Dividendenbuchung. Bitte §8b-Einordnung prüfen: Streubesitz unter 10% → §8b Abs. 4 KStG (voll steuerpflichtig). Beteiligung ab 10% → §8b Abs. 1 KStG (95% steuerfrei). Gegenkonto ggf. anpassen.'],
                   ['#FONDS#', 'Fondsertrags-Ausschüttung. Der ausgewiesene Teilfreistellungssatz entspricht dem Privatanleger-Satz der Bank. Für GmbHs gilt bei Aktienfonds (>51% Aktienquote) ein TF-Satz von 80% — bitte Bemessungsgrundlage und Steuerbetrag ggf. korrigieren.'],
+                  ['#AK-PRÜFEN#', 'Anschaffungskosten nicht aus den hochgeladenen Daten ableitbar (vermutlich Altbestand). Bitte historische AK aus DATEV ergänzen.'],
                 ].map(([tag, text]) => (
                   <div key={tag} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
                     <span style={{ fontFamily: 'var(--font-mono),ui-monospace,monospace', fontSize: 11, background: 'var(--bga)', border: '1px solid var(--ln2)', borderRadius: 4, padding: '2px 6px', flexShrink: 0, marginTop: 1, color: 'var(--ink)' }}>{tag}</span>

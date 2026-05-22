@@ -96,7 +96,7 @@ export default function ConfigModal({ files, onClose }: Props) {
               <LoadingLogo size={80} />
             </div>
             <h3 className="display" style={{ fontSize: 24, marginBottom: 8, color: 'var(--ink)' }}>
-              {phase === 'paying' ? (multi ? 'PDFs werden hochgeladen…' : 'PDF wird hochgeladen…') : 'Weiterleitung zu Stripe…'}
+              {phase === 'paying' ? (multi ? 'Dateien werden hochgeladen…' : 'Datei wird hochgeladen…') : 'Weiterleitung zu Stripe…'}
             </h3>
             <div style={{ fontSize: 14, color: 'var(--mu)' }}>Einen Moment bitte.</div>
           </div>
@@ -113,7 +113,7 @@ export default function ConfigModal({ files, onClose }: Props) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <h3 className="display" style={{ fontSize: 24, marginBottom: 6, color: 'var(--ink)' }}>
-                {multi ? 'Ihre PDFs sind bereit.' : 'Ihr PDF ist bereit.'}
+                {multi ? 'Ihre Dateien sind bereit.' : 'Ihre Datei ist bereit.'}
               </h3>
               <div style={{ fontFamily: 'var(--font-mono),ui-monospace,monospace', fontSize: 12, color: 'var(--mu)' }}>
                 {multi ? `(${files.length}) Dateien` : (files[0]?.name ?? 'Orderabrechnungen.pdf')}

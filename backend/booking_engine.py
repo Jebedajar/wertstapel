@@ -64,13 +64,6 @@ def _round2(d: Decimal) -> Decimal:
 
 def _fallback_tranchen(b: Beleg) -> List[Tranche]:
     """Berechnet AK aus Seite-1-Daten wenn keine Seite-2-Tranchen vorhanden."""
-    # Für Simple-Fälle (1 Tranche)
-    # AK = Ausmachender Betrag ∓ Veräußerungsgewinn/-verlust
-    # aber wir haben dieses Info auf Seite 1 nur als Gesamtwert.
-    # Hier wird vereinfacht: gesamter Erlös = Ausmachender Betrag (netto nach Provision)
-    # Gewinn/Verlust nicht bekannt ohne Seite 2 → Warnung bereits gesetzt.
-    # Wir liefern EINE Tranche mit AK=0, damit der Buchungssatz erstellt werden kann,
-    # aber als Plausi-Warnung.
     b.plausi_ok = False
     b.warnings.append("Tranchendaten fehlen — Buchung mit AK=0 erstellt, MANUELL KORRIGIEREN!")
     return [Tranche(stueck=b.stueck, ak=Decimal("0"), erloes_ant=b.ausmachender_betrag, ist_gewinn=True)]
@@ -88,12 +81,12 @@ def belege_zu_buchungen(belege: List[Beleg], config: dict) -> List[Buchung]:
 
     for b in belege:
         bez = _kuerzen(b.wertpapierbezeichnung, bez_max)
-        teilfrei_str = " [Teilfreistellung]" if b.teilfreistellung else ""
+        ak_marker = "#AK-PRÜFEN# " if getattr(b, "ak_unvollstaendig", False) else ""
+        teilfrei_str = ak_marker + ("#TF# " if b.teilfreistellung else "")
         ctx = dict(anzahl=_fmt_stueck(b.stueck), bezeichnung=bez,
                    isin=b.isin, auftragsnr=b.auftragsnummer, teilfrei=teilfrei_str)
 
         if b.typ == "KAUF":
-            # ─── KAUF: 1 Buchung, Ausmachender Betrag auf 1510 ───────────────
             buchungen.append(Buchung(
                 umsatz=b.ausmachender_betrag,
                 soll_haben="S",
@@ -110,32 +103,25 @@ def belege_zu_buchungen(belege: List[Beleg], config: dict) -> List[Buchung]:
             ))
 
         elif b.typ == "VERKAUF":
-            # ─── VERKAUF: Pro Tranche 3 Buchungen ────────────────────────────
             tranchen = b.tranchen if b.tranchen else _fallback_tranchen(b)
 
-            # Ausmachender Betrag = Summe der Netto-Erlöse der Tranchen
             summe_erloes = sum(t.erloes_ant for t in tranchen)
-            # Provision gesamt
             prov_ges = b.gebuehren_summe
 
             for t in tranchen:
                 ist_gewinn = t.ist_gewinn
 
-                # Proportionale Provision
                 if summe_erloes > 0:
                     prov_ant = _round2(prov_ges * t.erloes_ant / summe_erloes)
                 else:
                     prov_ant = _round2(prov_ges / len(tranchen))
 
-                # Brutto-Erlös der Tranche = netto + anteilige Provision
                 brutto_erloes = _round2(t.erloes_ant + prov_ant)
 
-                # Konten je nach Gewinn/Verlust
                 konto_erloes  = K["erloese_gewinn"]["nr"]  if ist_gewinn else K["verluste_erloes"]["nr"]
                 konto_abgang  = K["abgang_gewinn"]["nr"]   if ist_gewinn else K["abgang_verlust"]["nr"]
                 konto_prov    = K["gebuehren_vk_gewinn"]["nr"] if ist_gewinn else K["gebuehren_vk_verlust"]["nr"]
 
-                # Buchung 1: Bank an Erlöskonto = Brutto-Erlös
                 buchungen.append(Buchung(
                     umsatz=brutto_erloes,
                     soll_haben="S",
@@ -151,7 +137,6 @@ def belege_zu_buchungen(belege: List[Beleg], config: dict) -> List[Buchung]:
                     quell_seite=b.seite,
                 ))
 
-                # Buchung 2: Provisionskonto an Bank = anteilige Provision
                 if prov_ant > 0:
                     buchungen.append(Buchung(
                         umsatz=prov_ant,
@@ -168,7 +153,6 @@ def belege_zu_buchungen(belege: List[Beleg], config: dict) -> List[Buchung]:
                         quell_seite=b.seite,
                     ))
 
-                # Buchung 3: Abgangskonto an WP = Buchwert
                 if t.ak > 0:
                     buchungen.append(Buchung(
                         umsatz=t.ak,
@@ -188,53 +172,240 @@ def belege_zu_buchungen(belege: List[Beleg], config: dict) -> List[Buchung]:
     return buchungen
 
 
-def belege_zu_buchungen_alle_typen(belege, config):
-    """Wie belege_zu_buchungen, erweitertet um DIVIDENDE und FONDSERTRAG."""
-    from decimal import Decimal
+# ─────────────────────────────────────────────────────────────────────────────
+# Flatex-Erweiterung: DIVIDENDE + FONDSERTRAG
+# ─────────────────────────────────────────────────────────────────────────────
 
-    # KAUF und VERKAUF via bestehende Funktion
-    kv_belege = [b for b in belege if b.typ in ("KAUF", "VERKAUF")]
-    buchungen = belege_zu_buchungen(kv_belege, config)
+def _buchungen_dividende(b, config: dict) -> List[Buchung]:
+    """
+    SKR04-Buchungen für ausländische Dividenden.
+    Marker #DIV# signalisiert dem Steuerberater: §8b-Einordnung prüfen.
 
-    K   = config["konten"]
-    T   = config["buchungstexte"]
-    OPT = config.get("options", {})
-    bez_max = OPT.get("kuerze_bezeichnung_auf", 30)
-    konto_bank = K["bank"]["nr"]
+    1801 Soll – 7700 Haben : Endbetrag (Nettodividende)
+    1780 Soll – 7700 Haben : Quellensteuer EUR (anrechenbar)
+    """
+    K = config["konten"]
+    opts = config.get("options", {})
+    bez = _kuerzen(b.wertpapierbezeichnung, opts.get("kuerze_bezeichnung_auf", 30))
 
-    for b in belege:
-        if b.typ not in ("DIVIDENDE", "FONDSERTRAG"):
-            continue
+    endbetrag  = b.ausmachender_betrag
+    quellenst  = getattr(b, "quellensteuer_eur", None) or Decimal("0")
+    buchungen: List[Buchung] = []
 
-        bez = _kuerzen(b.wertpapierbezeichnung, bez_max)
-        teilfrei_str = (
-            f" | TF-Satz {b.teilfrei_satz}%" if b.typ == "FONDSERTRAG" and b.teilfrei_satz else ""
-        )
-        ctx = dict(
-            anzahl=_fmt_stueck(b.stueck), bezeichnung=bez,
-            isin=b.isin, auftragsnr=b.auftragsnummer, teilfrei=teilfrei_str
-        )
+    buchungen.append(Buchung(
+        umsatz        = endbetrag,
+        soll_haben    = "S",
+        konto         = K["bank"]["nr"],
+        gegenkonto    = "7700",
+        belegdatum    = b.schlusstag,
+        belegfeld_1   = b.auftragsnummer,
+        belegfeld_2   = "",
+        buchungstext  = f"#DIV# Dividende {bez} ({b.isin})"[:60],
+        isin          = b.isin,
+        wkn           = b.wkn or "",
+        stueck        = b.stueck,
+        kategorie     = "Dividende Bank",
+        quell_seite   = b.seite,
+    ))
 
-        konto_key = "dividende_ertraege" if b.typ == "DIVIDENDE" else "fondsertrag_ertraege"
-        konto_ertrag = K.get(konto_key, {}).get("nr", "2750")
-        text_key = "dividende" if b.typ == "DIVIDENDE" else "fondsertrag"
-        text_template = T.get(text_key, f"#{b.typ}# {{bezeichnung}} {{isin}}")
-
+    if quellenst > Decimal("0"):
         buchungen.append(Buchung(
-            umsatz=b.ausmachender_betrag,
-            soll_haben="S",
-            konto=konto_bank,
-            gegenkonto=konto_ertrag,
-            belegdatum=b.schlusstag,
-            belegfeld_1=b.auftragsnummer,
-            belegfeld_2=b.rechnungsnummer or "",
-            buchungstext=text_template.format(**ctx)[:60],
-            isin=b.isin,
-            wkn=b.wkn or "",
-            stueck=b.stueck,
-            kurs=b.ausfuehrungskurs or Decimal("0"),
-            kategorie=b.typ,
-            quell_seite=b.seite,
+            umsatz        = quellenst,
+            soll_haben    = "S",
+            konto         = "1780",
+            gegenkonto    = "7700",
+            belegdatum    = b.schlusstag,
+            belegfeld_1   = b.auftragsnummer,
+            belegfeld_2   = "",
+            buchungstext  = f"#DIV# Quellensteuer {b.isin}"[:60],
+            isin          = b.isin,
+            wkn           = b.wkn or "",
+            stueck        = Decimal("0"),
+            kategorie     = "Dividende Quellensteuer",
+            quell_seite   = b.seite,
         ))
 
     return buchungen
+
+
+def _buchungen_fondsertrag(b, config: dict) -> List[Buchung]:
+    """
+    SKR04-Buchungen für Fonds-Ausschüttungen.
+    Marker #FONDS# + TF-Satz signalisiert Steuerberater: ggf. auf 80% (GmbH, Aktienfonds) korrigieren.
+
+    1801 Soll – 7810 Haben : Endbetrag (nach Steuerabzug)
+    1780 Soll – 7810 Haben : KapESt + Soli (einbehalten, anrechenbar)
+    """
+    K = config["konten"]
+    opts = config.get("options", {})
+    bez = _kuerzen(b.wertpapierbezeichnung, opts.get("kuerze_bezeichnung_auf", 30))
+
+    endbetrag   = b.ausmachender_betrag
+    kapest      = getattr(b, "kapitalertragsteuer", None) or Decimal("0")
+    soli        = getattr(b, "soli", None) or Decimal("0")
+    steuer_ges  = kapest + soli
+    tf_satz     = getattr(b, "teilfrei_satz", None)
+    tf_hinweis  = f" TF={tf_satz}%" if tf_satz else ""
+
+    buchungen: List[Buchung] = []
+
+    buchungen.append(Buchung(
+        umsatz        = endbetrag,
+        soll_haben    = "S",
+        konto         = K["bank"]["nr"],
+        gegenkonto    = "7810",
+        belegdatum    = b.schlusstag,
+        belegfeld_1   = b.auftragsnummer,
+        belegfeld_2   = "",
+        buchungstext  = f"#FONDS# Ausschuettung {bez} ({b.isin}){tf_hinweis}"[:60],
+        isin          = b.isin,
+        wkn           = b.wkn or "",
+        stueck        = b.stueck,
+        kategorie     = f"Fondsertrag{tf_hinweis}",
+        quell_seite   = b.seite,
+    ))
+
+    if steuer_ges > Decimal("0"):
+        buchungen.append(Buchung(
+            umsatz        = steuer_ges,
+            soll_haben    = "S",
+            konto         = "1780",
+            gegenkonto    = "7810",
+            belegdatum    = b.schlusstag,
+            belegfeld_1   = b.auftragsnummer,
+            belegfeld_2   = "",
+            buchungstext  = f"#FONDS# KapESt+Soli {b.isin}"[:60],
+            isin          = b.isin,
+            wkn           = b.wkn or "",
+            stueck        = Decimal("0"),
+            kategorie     = "Fondsertrag Steuer",
+            quell_seite   = b.seite,
+        ))
+
+    return buchungen
+
+
+def belege_zu_buchungen_alle_typen(belege: list, config: dict) -> List[Buchung]:
+    """
+    Erweiterter Dispatcher für alle Belegtypen.
+    KAUF/VERKAUF → bestehende Engine
+    DIVIDENDE    → _buchungen_dividende
+    FONDSERTRAG  → _buchungen_fondsertrag
+    """
+    alle: List[Buchung] = []
+    kauf_vk = [b for b in belege if b.typ in ("KAUF", "VERKAUF")]
+    if kauf_vk:
+        alle.extend(belege_zu_buchungen(kauf_vk, config))
+    for b in belege:
+        if b.typ == "DIVIDENDE":
+            alle.extend(_buchungen_dividende(b, config))
+        elif b.typ == "FONDSERTRAG":
+            alle.extend(_buchungen_fondsertrag(b, config))
+    return alle
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Erweiterung Runde 2: Verwahrentgelt, Zinsgutschrift, Finanztransaktionssteuer
+# ─────────────────────────────────────────────────────────────────────────────
+
+@dataclass
+class UngebuchterBeleg:
+    """
+    Erkannter Vorgang der NICHT automatisch gebucht wurde.
+    Erscheint im Protokoll mit Buchungsempfehlung für den Steuerberater.
+    """
+    typ: str
+    datum: date
+    betrag: Decimal
+    grund: str
+    empfehlung: str = ""
+    isin: str = ""
+    bezeichnung: str = ""
+    rohtext: str = ""
+
+
+def _buchungen_verwahrentgelt(b, config: dict) -> List[Buchung]:
+    """SKR04: 6860 (Nebenkosten Geldverkehr) an 1801 (Bank)."""
+    K = config["konten"]
+    bez = _kuerzen(b.wertpapierbezeichnung or "Verwahrentgelt", 30)
+    return [Buchung(
+        umsatz=b.ausmachender_betrag, soll_haben="S",
+        konto="6860", gegenkonto=K["bank"]["nr"],
+        belegdatum=b.schlusstag, belegfeld_1=b.auftragsnummer, belegfeld_2="",
+        buchungstext=f"Verwahrentgelt {bez}"[:60],
+        isin=b.isin or "", wkn=b.wkn or "",
+        stueck=b.stueck or Decimal("0"),
+        kategorie="Verwahrentgelt", quell_seite=b.seite,
+    )]
+
+
+def _buchungen_zinsgutschrift(b, config: dict) -> List[Buchung]:
+    """SKR04: 1801 (Bank) an 7100 (Zinserträge); +1780 für KapESt/Soli."""
+    K = config["konten"]
+    bez = _kuerzen(b.wertpapierbezeichnung, 30)
+    kapest = getattr(b, "kapitalertragsteuer", None) or Decimal("0")
+    soli = getattr(b, "soli", None) or Decimal("0")
+    steuer_ges = kapest + soli
+
+    buchungen = [Buchung(
+        umsatz=b.ausmachender_betrag, soll_haben="S",
+        konto=K["bank"]["nr"], gegenkonto="7100",
+        belegdatum=b.schlusstag, belegfeld_1=b.auftragsnummer, belegfeld_2="",
+        buchungstext=f"Zinsgutschrift {bez} ({b.isin})"[:60],
+        isin=b.isin, wkn=b.wkn or "", stueck=b.stueck,
+        kategorie="Zinsgutschrift", quell_seite=b.seite,
+    )]
+    if steuer_ges > Decimal("0"):
+        buchungen.append(Buchung(
+            umsatz=steuer_ges, soll_haben="S",
+            konto="1780", gegenkonto="7100",
+            belegdatum=b.schlusstag, belegfeld_1=b.auftragsnummer, belegfeld_2="",
+            buchungstext=f"KapESt+Soli Zins {b.isin}"[:60],
+            isin=b.isin, wkn=b.wkn or "", stueck=Decimal("0"),
+            kategorie="Zinsgutschrift Steuer", quell_seite=b.seite,
+        ))
+    return buchungen
+
+
+def _buchungen_ftt(b, config: dict) -> List[Buchung]:
+    """SKR04: 6305 (Sonstige Steuern) an 1801 (Bank) — Finanztransaktionssteuer."""
+    K = config["konten"]
+    bez = _kuerzen(b.wertpapierbezeichnung, 30)
+    return [Buchung(
+        umsatz=b.ausmachender_betrag, soll_haben="S",
+        konto="6305", gegenkonto=K["bank"]["nr"],
+        belegdatum=b.schlusstag, belegfeld_1=b.auftragsnummer, belegfeld_2="",
+        buchungstext=f"FTT {bez} ({b.isin})"[:60],
+        isin=b.isin or "", wkn=b.wkn or "", stueck=Decimal("0"),
+        kategorie="Finanztransaktionssteuer", quell_seite=b.seite,
+    )]
+
+
+def belege_zu_buchungen_v2(belege, config):
+    """Voller Dispatcher inkl. aller Typen. Returns (buchungen, ungebucht_liste)."""
+    alle, ungebucht = [], []
+    kauf_vk = [b for b in belege if b.typ in ("KAUF", "VERKAUF")]
+    if kauf_vk:
+        alle.extend(belege_zu_buchungen(kauf_vk, config))
+
+    for b in belege:
+        if b.typ in ("KAUF", "VERKAUF"):
+            continue
+        if b.typ == "DIVIDENDE":
+            alle.extend(_buchungen_dividende(b, config))
+        elif b.typ == "FONDSERTRAG":
+            alle.extend(_buchungen_fondsertrag(b, config))
+        elif b.typ == "VERWAHRENTGELT":
+            alle.extend(_buchungen_verwahrentgelt(b, config))
+        elif b.typ == "ZINSGUTSCHRIFT":
+            alle.extend(_buchungen_zinsgutschrift(b, config))
+        elif b.typ == "FTT":
+            alle.extend(_buchungen_ftt(b, config))
+        else:
+            ungebucht.append(UngebuchterBeleg(
+                typ=b.typ, datum=b.schlusstag, betrag=b.ausmachender_betrag,
+                grund=f"Belegtyp '{b.typ}' wird nicht automatisch gebucht",
+                empfehlung="Manuelle Prüfung durch Steuerberater erforderlich",
+                isin=b.isin or "", bezeichnung=b.wertpapierbezeichnung or "",
+            ))
+    return alle, ungebucht

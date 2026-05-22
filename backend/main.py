@@ -167,7 +167,8 @@ def _send_done_email(email: str, job_id: str):
               Buchungstexte mit folgenden Markierungen sind zur Prüfung gekennzeichnet:<br>
               · <strong>#TF#</strong> — Teilfreistellungssatz (Fondstyp und GmbH-Satz prüfen)<br>
               · <strong>#DIV#</strong> — Dividende (§8b-Einordnung: Streubesitz oder Schachtelbeteiligung)<br>
-              · <strong>#FONDS#</strong> — Fondsausschüttung (TF-Satz GmbH: Aktienfonds 80%, Mischfonds 40%)<br><br>
+              · <strong>#FONDS#</strong> — Fondsausschüttung (TF-Satz GmbH: Aktienfonds 80%, Mischfonds 40%)<br>
+              · <strong>#AK-PRÜFEN#</strong> — Anschaffungskosten nicht aus den hochgeladenen Daten ableitbar (vermutlich Altbestand). Bitte historische AK aus DATEV ergänzen.<br><br>
               Alle Buchungen sind Buchungsvorschläge zur fachkundigen Prüfung.
             </div>
             """,
@@ -226,8 +227,9 @@ async def upload_pdf(
     mandant:  str = Form(""),
     consent:  str = Form("false"),
 ):
-    if not file.filename or not file.filename.lower().endswith(".pdf"):
-        raise HTTPException(400, "Nur PDF-Dateien erlaubt")
+    allowed_ext = {".pdf", ".xlsx", ".xls", ".csv"}
+    if not file.filename or not any(file.filename.lower().endswith(ext) for ext in allowed_ext):
+        raise HTTPException(400, "Nur PDF-, XLSX-, XLS- oder CSV-Dateien erlaubt")
 
     content = await file.read()
     if len(content) > 100 * 1024 * 1024:
@@ -242,7 +244,8 @@ async def upload_pdf(
     job_id      = str(uuid.uuid4())
     consent_at  = datetime.utcnow().isoformat()
     consent_ip  = (request.headers.get("x-real-ip") or request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else ""))
-    pdf_path = UPLOAD_DIR / f"{job_id}.pdf"
+    file_ext = Path(file.filename).suffix.lower() if file.filename else ".pdf"
+    pdf_path = UPLOAD_DIR / f"{job_id}{file_ext}"
     pdf_path.write_bytes(content)
 
     with get_db() as conn:

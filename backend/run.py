@@ -1,8 +1,8 @@
 """
-run.py — PDF → DATEV-Buchungsstapel
+run.py — PDF/XLSX → DATEV-Buchungsstapel
 
-Erkennt automatisch die Bank (Sparkasse oder Flatex) anhand des PDF-Inhalts
-und nutzt den passenden Parser.
+Erkennt automatisch die Bank (Sparkasse, Flatex oder Comdirect) anhand des
+PDF-Inhalts bzw. der XLSX-Struktur und nutzt den passenden Parser.
 """
 import argparse, json, sys
 from datetime import datetime, date
@@ -11,18 +11,26 @@ from pathlib import Path
 
 import pdfplumber
 
-from booking_engine import belege_zu_buchungen, belege_zu_buchungen_alle_typen
+from booking_engine import belege_zu_buchungen, belege_zu_buchungen_alle_typen, belege_zu_buchungen_v2
 from datev_writer import buchungen_zu_csv, schreibe_review_csv, _fmt_decimal
 
 
-def detect_bank(pdf_path: str) -> str:
-    """Erkennt die Bank anhand der ersten PDF-Seite."""
-    with pdfplumber.open(pdf_path) as pdf:
+def detect_bank(file_path: str) -> str:
+    """Erkennt die Bank anhand der ersten PDF-Seite oder XLSX-Struktur."""
+    if file_path.lower().endswith(('.xlsx', '.xlsm', '.xls')):
+        from parser_comdirect import is_comdirect_xlsx
+        if is_comdirect_xlsx(file_path):
+            return "comdirect"
+        return "unknown"
+    # PDF-Fall
+    with pdfplumber.open(file_path) as pdf:
         text = (pdf.pages[0].extract_text() or "") if pdf.pages else ""
     if "flatexDEGIRO" in text or "flatex.de" in text:
         return "flatex"
     if "Sparkasse" in text or "S-DirektInvest" in text or "Stadtsparkasse" in text:
         return "sparkasse"
+    if "comdirect" in text.lower():
+        return "comdirect_pdf"
     return "unknown"
 
 
@@ -33,11 +41,21 @@ def get_parser(bank: str):
         return p
     if bank == "flatex":
         import parser_flatex as p
-        # Booking-Engine erwartet Beleg/Tranche aus dem 'parser' Modul
         import parser as sparkasse_p
         sparkasse_p.Beleg = p.Beleg
         sparkasse_p.Tranche = p.Tranche
         return p
+    if bank == "comdirect":
+        import parser_comdirect as p
+        import parser as sparkasse_p
+        sparkasse_p.Beleg = p.Beleg
+        sparkasse_p.Tranche = p.Tranche
+        return p
+    if bank == "comdirect_pdf":
+        raise ValueError(
+            "Comdirect Finanzreport-PDF wird nicht unterstützt. "
+            "Bitte stattdessen den XLSX-Export aus dem comdirect-Webportal hochladen."
+        )
     raise ValueError(f"Unbekannte Bank: {bank}")
 
 
@@ -86,14 +104,13 @@ def main(pdf_path, output_dir="./out", skr="SKR04", bank="1801", mandant=""):
     detected_bank = detect_bank(pdf_path)
     if detected_bank == "unknown":
         raise ValueError("Bank konnte nicht erkannt werden. "
-                         "Unterstützt: Sparkasse, flatexDEGIRO.")
+                         "Unterstützt: Sparkasse, flatexDEGIRO, Comdirect (XLSX).")
     parser_module = get_parser(detected_bank)
 
     config = resolve_config(skr=skr, bank=bank, mandant_nr=mandant)
     belege, ignored = parser_module.parse_pdf(pdf_path)
 
-    # Alle Belegtypen werden gebucht — DIVIDENDE/FONDSERTRAG mit Marker (#DIV#, #FONDS#)
-    unsupported = []  # Nichts mehr manuell ausgeschlossen
+    unsupported = []
 
     all_belege = belege + unsupported
     if all_belege:
@@ -103,7 +120,8 @@ def main(pdf_path, output_dir="./out", skr="SKR04", bank="1801", mandant=""):
         datum_von = datum_bis = datetime.now().date()
     config["datev_header"]["wj_beginn"] = date(datum_von.year, 1, 1).strftime("%Y%m%d")
 
-    buchungen = belege_zu_buchungen_alle_typen(belege, config)
+    buchungen, ungebucht_v2 = belege_zu_buchungen_v2(belege, config)
+    unsupported.extend(ungebucht_v2)
 
     export_date = datetime.now().date()
     fnames = build_filenames(out, mandant, export_date)
@@ -129,13 +147,13 @@ def main(pdf_path, output_dir="./out", skr="SKR04", bank="1801", mandant=""):
         if unsupported:
             f.write(f"\n⚠️  NICHT GEBUCHT — Belegtypen noch nicht unterstützt:\n")
             for b in unsupported:
-                f.write(f"  {b.typ}: {b.wertpapierbezeichnung} ({b.isin}), "
-                        f"Endbetrag {b.ausmachender_betrag} EUR\n")
-                if b.typ == "DIVIDENDE" and b.quellensteuer_eur:
-                    f.write(f"     → Quellensteuer EUR: {b.quellensteuer_eur:.2f}\n")
-                if b.typ == "FONDSERTRAG" and b.teilfrei_satz:
-                    f.write(f"     → Teilfreist.-Satz: {b.teilfrei_satz}% "
-                            f"(GmbH-Korrektur ggf. erforderlich)\n")
+                if hasattr(b, "typ") and hasattr(b, "bezeichnung"):
+                    f.write(f"  {b.typ}: {b.bezeichnung} ({b.isin}), "
+                            f"Betrag {b.betrag} EUR\n")
+                    f.write(f"     → {b.empfehlung}\n")
+                else:
+                    f.write(f"  {b.typ}: {b.wertpapierbezeichnung} ({b.isin}), "
+                            f"Endbetrag {b.ausmachender_betrag} EUR\n")
             f.write("\n     Diese Belege müssen manuell vom Steuerberater gebucht werden.\n")
 
         if fails:

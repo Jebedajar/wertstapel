@@ -11,15 +11,17 @@ export const FAQS = [
   { q: 'Was passiert mit den Daten?',
     a: 'Die Verarbeitung erfolgt ausschließlich auf EU-Servern in Deutschland. Das PDF und die Ergebnisdateien werden nach Auslieferung automatisch gelöscht. Kein KI-Sprachmodell und kein Drittanbieter arbeitet mit den Daten.' },
   { q: 'Mit welchen Banken funktioniert das?',
-    a: 'Derzeit funktioniert Wertstapel mit PDFs aller Sparkassen. Weitere Banken befinden sich in Entwicklung bzw. können auf Wunsch eingebunden werden. Reichen Sie ein anonymisiertes Muster-PDF ein – wir prüfen die Kompatibilität kostenfrei: muster@wertstapel.de' },
+    a: 'Derzeit funktioniert Wertstapel mit Dokumenten aller Sparkassen, Comdirect und Flatex. Weitere Banken befinden sich in Entwicklung bzw. können auf Wunsch eingebunden werden. Reichen Sie ein anonymisiertes Muster-PDF ein – wir prüfen die Kompatibilität kostenfrei: muster@wertstapel.de' },
+  { q: 'Welche Dokumente muss ich hochladen?',
+    a: 'Hier findest Du die relevanten Dokumente bei Deiner Bank / Deinem Broker:\n– Sparkassen: Nachrichten > Postfach > Filter „Wertpapierdokumente”, Datum und Depotinhaber setzen > alle PDFs herunterladen. Alternativ kann Ihr Bankberater eine aggregierte PDF mit allen Transaktionen zur Verfügung stellen.\n– Comdirect: Depot > Abrechnungsdatum > Zeitraum auswählen > unten „CSV exportieren”\n– Flatex: Post > Dokumentenarchiv bzw. Postfach > Filter „Kauf-/Verkaufabrechnung”, „Dividenden/Ertragsgutschrift” wählen.' },
   { q: 'Was wenn ein Beleg nicht erkannt wird?',
-    a: 'Nicht erkannte Seiten erscheinen mit Typ-Bezeichnung und Grund im Verarbeitungsprotokoll. Es gibt somit keine „stillen Fehler“. Was nicht automatisch buchbar ist, bleibt manuell buchbar — so wie bisher.' },
+    a: 'Nicht erkannte Seiten erscheinen mit Typ-Bezeichnung und Grund im Verarbeitungsprotokoll. Es gibt somit keine „stillen Fehler”. Was nicht automatisch buchbar ist, bleibt manuell buchbar — so wie bisher.' },
   { q: 'Welche Einstellungen kann ich vornehmen?',
-    a: 'Wenn Sie ein PDF hochladen, öffnet sich ein Dialogfeld, in dem Sie einige Einstellungen vornehmen können. Sie können die Standard-Einstellungen problemlos belassen. Als Steuerberater sparen Sie durch die Einstellungen mit minimalem Aufwand Zeit beim Import. Mögliche Einstellungen: SKR04 (Kapitalgesellschaften wie GmbH – Standard) oder SKR03 (Personengesellschaften), Bankkonto (Standard: 1801), Mandantennummer.' },
+    a: 'Wenn Sie eine Datei hochladen, öffnet sich ein Dialogfeld, in dem Sie einige Einstellungen vornehmen können. Sie können die Standard-Einstellungen problemlos belassen. Als Steuerberater sparen Sie durch die Einstellungen mit minimalem Aufwand Zeit beim Import. Mögliche Einstellungen: SKR04 (Kapitalgesellschaften wie GmbH – Standard) oder SKR03 (Personengesellschaften), Bankkonto (Standard: 1801), Mandantennummer.' },
   { q: 'Darf ich das als Steuerberater einsetzen?',
     a: 'Ja, Sie dürfen. Der Buchungsstapel ist ein Buchungsvorschlag zur fachkundigen Prüfung durch den Steuerberater — keine Steuerberatungsleistung. Wertstapel verarbeitet Daten maschinell; die fachliche Verantwortung für den Jahresabschluss verbleibt beim Steuerberater.' },
-  { q: 'Gibt es ein Seitenlimit?',
-    a: 'Nein. Egal ob 5 oder 5.000 Seiten – der Export kostet dasselbe. Die Verarbeitungszeit liegt in der Regel auch für große PDFs deutlich unter 5 Minuten.' },
+  { q: 'Gibt es ein Limit je Export?',
+    a: 'Nein. Egal ob 50 oder 5.000 Transaktionen – der Export kostet dasselbe. Die Verarbeitungszeit liegt in der Regel auch für große Dateien deutlich unter 5 Minuten.' },
 ]
 
 export function buildFilenames(mandant: string) {

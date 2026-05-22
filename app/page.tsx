@@ -44,14 +44,14 @@ function UploadZone({ onFiles }: { onFiles: (fs: File[]) => void }) {
       onClick={() => ref.current?.click()}
       onDragOver={e => { e.preventDefault(); setDrag(true) }}
       onDragLeave={() => setDrag(false)}
-      onDrop={e => { e.preventDefault(); setDrag(false); const fs = Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf'); if (fs.length) onFiles(fs) }}>
-      <input ref={ref} type="file" accept=".pdf" multiple style={{ display: 'none' }} onChange={e => { const fs = Array.from(e.target.files || []).filter(f => f.type === 'application/pdf'); if (fs.length) onFiles(fs) }} />
+      onDrop={e => { e.preventDefault(); setDrag(false); const fs = Array.from(e.dataTransfer.files).filter(f => /\.(pdf|xlsx|xls|csv)$/i.test(f.name)); if (fs.length) onFiles(fs) }}>
+      <input ref={ref} type="file" accept=".pdf,.xlsx,.xls,.csv" multiple style={{ display: 'none' }} onChange={e => { const fs = Array.from(e.target.files || []).filter(f => /\.(pdf|xlsx|xls|csv)$/i.test(f.name)); if (fs.length) onFiles(fs) }} />
       <div className="upload-inner">
         <div style={{ width: 72, height: 72, borderRadius: 18, background: 'var(--gr)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5" /><path d="M5 12l7-7 7 7" /></svg>
         </div>
         <div style={{ flex: 1, minWidth: 160, textAlign: 'left' }}>
-          <div style={{ fontSize: 'clamp(17px,2.5vw,22px)', fontWeight: 600, color: 'var(--ink)', marginBottom: 6, letterSpacing: '-.01em' }}>PDFs hier ablegen oder klicken</div>
+          <div style={{ fontSize: 'clamp(17px,2.5vw,22px)', fontWeight: 600, color: 'var(--ink)', marginBottom: 6, letterSpacing: '-.01em' }}>PDF/CSV/XLS hier ablegen oder klicken</div>
           <div className="mono" style={{ fontSize: 12, color: 'var(--mu)' }}>Orderabrechnungen · beliebig viele Seiten · bis 100 MB</div>
         </div>
         <div className="mono" style={{ fontSize: 11, padding: '8px 12px', background: 'var(--bga)', borderRadius: 8, color: 'var(--ink2)', letterSpacing: '.05em' }}>.PDF</div>
@@ -65,7 +65,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
   return (
     <div style={{ borderTop: '1px solid var(--ln)', padding: '24px 0' }}>
       <div style={{ fontSize: 'clamp(16px,2vw,20px)', fontWeight: 600, color: 'var(--ink)', letterSpacing: '-.015em', marginBottom: 14 }}>{q}</div>
-      <p style={{ fontSize: 15, lineHeight: 1.65, color: 'var(--mu)' }}>{a}</p>
+      <p style={{ fontSize: 15, lineHeight: 1.65, color: 'var(--mu)', whiteSpace: 'pre-line' }}>{a}</p>
     </div>
   )
 }
@@ -115,11 +115,11 @@ export default function Home() {
       <section className="sec hero-sec" style={{ background: "var(--bg)" }}>
         <div className="wrap" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
           <h1 className="display fu hero-h1" style={{ lineHeight: 1.08, fontSize: 'clamp(38px,7vw,80px)', maxWidth: 900 }}>
-            Wertpapier-PDF rein.<br />
+            Wertpapier-Datei rein.<br />
             <span style={{ color: 'var(--gr)' }}>DATEV-Stapel raus.</span>
           </h1>
           <p className="fu1 hero-copy" style={{ fontSize: "clamp(16px,2vw,20px)", lineHeight: 1.55, color: "var(--ink2)", maxWidth: 680 }}>
-            Schluss mit dem manuellen Buchen von Wertpapier-Transaktionen: Sie laden das PDF ihrer Depot-Bank hoch, wir liefern in 5 Minuten den DATEV-Stapel — fertig zum Import und mit Plausibilitätscheck. Keine Seitenbegrenzung. Kein Abo.
+            Schluss mit dem manuellen Buchen von Wertpapier-Transaktionen: Sie laden das PDF oder die CSV/XLS ihrer Depot-Bank hoch, wir liefern in 5 Minuten den DATEV-Stapel — fertig zum Import und mit Plausibilitätscheck. Keine Transaktionsbegrenzung. Kein Abo.
           </p>
           <div id="hero-upload" className="fu2" style={{ width: '100%', maxWidth: 720 }}>
             <UploadZone onFiles={handleFiles} />
@@ -152,10 +152,10 @@ export default function Home() {
       {/* HOW IT WORKS */}
       <section id="how" className="sec">
         <div className="wrap">
-          <SH kicker="3 Schritte. Keine Einarbeitung." title="Wie es funktioniert" sub="Vom PDF zur DATEV-Importdatei in unter 5 Minuten — egal ob 5 oder 5.000 Seiten." />
+          <SH kicker="3 Schritte. Keine Einarbeitung." title="Wie es funktioniert" sub="Vom PDF zur DATEV-Importdatei in unter 5 Minuten — egal ob 50 oder 5.000 Transaktionen." />
           <div className="grid-3">
             {[
-              { n: '01', title: 'PDF hochladen',              desc: 'Laden Sie einfach das vollständige Orderabrechnungs-PDF Ihrer Bank hoch.' },
+              { n: '01', title: 'Datei hochladen',             desc: 'Laden Sie einfach die vollständigen Orderabrechnungen Ihrer Bank hoch – als PDF, CSV oder XLSX.' },
               { n: '02', title: 'Automatisierte Buchung',      desc: 'Die Buchungssätze werden automatisch auf Basis der offiziellen DATEV-Dokumentation erstellt. Keine KI, somit keine KI-Fehler.' },
               { n: '03', title: 'DATEV-Stapel herunterladen', desc: 'Die Export-Datei ist direkt importierbar in DATEV. Plausibilitätsbericht und Verarbeitungsprotokoll sichern ab.' },
             ].map((s, i) => (
@@ -245,8 +245,8 @@ export default function Home() {
             {[
               { col: 'Wertstapel', good: true, items: [
                 { label: 'Deterministisch',  text: 'Feste Regeln auf Basis offizieller DATEV-Dokumentation. Buchungsvorschlag nachvollziehbar.' },
-                { label: 'Kein Volumenlimit', text: 'Ein Export kostet immer dasselbe — egal ob 5 oder 5.000 Seiten.' },
-                { label: 'Kein Setup',        text: 'PDF hochladen. Warten. Fertig. Neue Banken werden auf Anfrage implementiert.' },
+                { label: 'Kein Volumenlimit', text: 'Ein Export kostet immer dasselbe — egal ob 50 oder 5.000 Transaktionen.' },
+                { label: 'Kein Setup',        text: 'Datei hochladen. Warten. Fertig. Neue Banken werden auf Anfrage implementiert.' },
               ]},
               { col: 'Andere Tools', good: false, items: [
                 { label: 'KI-Kategorisierung', text: 'Schätzt, variiert, lernt — aber: keine prüfbare Logik, Ergebnisse können abweichen.' },
@@ -279,7 +279,7 @@ export default function Home() {
       {/* PRICING */}
       <section id="pricing" className="sec" style={{ background: 'var(--bg)' }}>
         <div className="wrap">
-          <SH kicker="Preise" title={<>Kein Seitenlimit.<br />Auf keinem Paket.</>} sub="Ein Export kostet dasselbe — egal ob das PDF 5 oder 5.000 Seiten hat. Pakete verfallen nicht." />
+          <SH kicker="Preise" title={<>Kein Transaktionslimit.<br />Auf keinem Paket.</>} sub="Ein Export kostet dasselbe — egal ob 50 oder 5.000 Transaktionen. Pakete verfallen nicht." />
           <div className="grid-4">
             {PLANS.map(p => (
               <div key={p.id} className={`plan-card${p.popular ? ' popular' : ''}`}>
