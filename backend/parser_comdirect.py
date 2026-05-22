@@ -126,6 +126,7 @@ def parse_xlsx(xlsx_path: str) -> tuple[list[Beleg], list[IgnoredPage]]:
     COL_ORDER  = "Ordernummer"
     COL_DEV    = "Devisenkurs"
 
+    df[COL_ABR] = pd.to_datetime(df[COL_ABR], format="%d.%m.%Y", dayfirst=True).dt.date
     df = df.sort_values(by=COL_ABR).reset_index(drop=True)
 
     # FIFO-Inventory: dict[isin] → list of (stueck_remaining, ak_pro_stueck)
