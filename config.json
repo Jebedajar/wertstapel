@@ -1,0 +1,74 @@
+{
+  "_comment": "Wertstapel — Konfiguration Fassung 3. Kontonummern stehen NICHT mehr hier, sondern ausschliesslich in config/konten.yaml. Diese Datei enthaelt nur noch Kopfdaten, Textvorlagen und Optionen.",
+
+  "datev_header": {
+    "berater_nr": "",
+    "mandant_nr": "",
+    "diktatkuerzel": "XX",
+    "wj_beginn": "",
+    "sachkontenlaenge": 4,
+    "buchungstyp": 1,
+    "festschreibung": 0,
+    "waehrung": "EUR",
+    "exportiert_von": "wertstapel",
+    "stapel_bezeichnung_template": "WP-Stapel {datum_von}-{datum_bis}",
+
+    "_rechnungslegungszweck": "Feld 20 der DTVF-Kopfzeile. 0 = rechnungslegungszweckunabhaengig, 50 = Handelsrecht, 30 = Steuerrecht. Quelle: DATEV-Exportanleitungen AGENDA und Schleupen CS:Plus, jeweils Abschnitt Finanzbuchfuehrung. Der Hauptstapel bleibt auf 0, weil alle bisher ausgelieferten Exporte diesen Wert hatten.",
+    "rechnungslegungszweck": 0,
+    "rechnungslegungszweck_steuerrecht": 30
+  },
+
+  "mandant_vorgaben": {
+    "_comment": "Werden je Mandant gespeichert, nicht pro Export gewaehlt.",
+    "kontenrahmen": "SKR04",
+    "vermoegensart": "UV",
+    "bewertung": "gleitender_durchschnitt",
+    "depots": [
+      {
+        "nr": 1,
+        "bezeichnung": "Hauptdepot",
+        "kennung": ""
+      }
+    ]
+  },
+
+  "buchungstexte": {
+    "_comment": "{marker} enthaelt saemtliche Marker als Praefix, durch Leerzeichen getrennt. DATEV kuerzt auf 60 Zeichen, deshalb steht der Marker vorn.",
+
+    "kauf": "{marker}Kauf {anzahl} {bezeichnung} ({isin})",
+    "verkauf_erloes": "{marker}Verkauf {anzahl} {bezeichnung} ({isin})",
+    "verkauf_gebuehren": "{marker}Gebuehren Verkauf {isin} (Auftrag {auftragsnr})",
+    "verkauf_abgang": "{marker}Abgang Buchwert {isin} (Auftrag {auftragsnr})",
+    "verkauf_ergebnis": "{marker}Abgangsergebnis {isin} (Auftrag {auftragsnr})",
+
+    "dividende": "{marker}Dividende {anzahl} {bezeichnung} | ISIN {isin}",
+    "dividende_steuer": "{marker}KapESt+SolZ Dividende {isin}",
+    "dividende_quellensteuer": "{marker}Quellensteuer {isin}",
+
+    "ausschuettung": "{marker}Ausschuettung {bezeichnung} | ISIN {isin}",
+    "ausschuettung_steuer": "{marker}KapESt+SolZ Ausschuettung {isin}",
+
+    "kupon": "{marker}Kupon {bezeichnung} | ISIN {isin}",
+    "stueckzinsen_gezahlt": "{marker}Gez. Stueckzinsen {isin}",
+    "stueckzinsen_erhalten": "{marker}Erh. Stueckzinsen {isin}",
+    "stueckzinsen_aufloesung": "{marker}Aufloesung Stueckzinsen {isin}",
+
+    "vorabpauschale_bildung": "{marker}Vorabpauschale {jahr} | ISIN {isin}",
+    "vorabpauschale_aufloesung": "{marker}Aufloesung Ausgleichsposten {isin}",
+
+    "verwahrentgelt": "Verwahrentgelt {bezeichnung}",
+    "nebenkosten": "Depot-/Kontogebuehren {bezeichnung}",
+    "zinsgutschrift": "Zinsgutschrift {bezeichnung}",
+    "zinsaufwand": "Zinsaufwand {bezeichnung}",
+    "fx_differenz": "Kursdifferenz {isin}"
+  },
+
+  "options": {
+    "kuerze_bezeichnung_auf": 30,
+    "plausi_toleranz_eur": 0.05,
+    "schreibe_review_csv": true,
+    "schreibe_log": true,
+    "schreibe_einrichtungsblatt": true,
+    "schreibe_vorabpauschale_blatt": true
+  }
+}
