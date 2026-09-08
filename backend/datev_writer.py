@@ -15,7 +15,7 @@ from typing import List
 import csv
 import io
 
-from booking_engine import Buchung
+from modelle import Buchung
 
 
 # Reihenfolge der 126 Datenspalten gemäß DATEV-DTVF v7.00 / Format-Version 13
