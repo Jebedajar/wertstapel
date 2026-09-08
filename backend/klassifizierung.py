@@ -138,6 +138,9 @@ class Klassifikator:
             return ANLEIHE, False
         if nb.typ == "DIVIDENDE":
             return AKTIE, True
+        belegart = " ".join(nb.warnings) + " " + str(getattr(nb.quelle, "typ", ""))
+        if re.search(r"investmentfonds|r[üu]cknahme", belegart, re.I):
+            return FONDS, True
         return None, False
 
     # ── Fondskategorie ────────────────────────────────────────────────────
