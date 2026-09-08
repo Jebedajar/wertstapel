@@ -1,0 +1,334 @@
+# Wertstapel – Kontenmatrix
+# Fassung 3, Stand 2026-08-28
+# Abgestimmt mit der Steuerberaterin, geprüft gegen DATEV SKR 03 (Art.-Nr. 11174)
+# und SKR 04 (Art.-Nr. 11175), gültig für 2026.
+#
+# Diese Datei ist die EINZIGE Quelle für Kontonummern. Im Code darf keine
+# Kontonummer mehr als Literal stehen.
+#
+# Legende status:
+#   standard  = im Kontenrahmen belegt, nichts einzurichten
+#   anzulegen = im Kontenrahmen unbelegt, von der Kanzlei einmalig anzulegen
+#               und mit Kontenzweck / Bilanz- bzw. GuV-Posten zu versehen
+
+version: 3
+stand: 2026-08-28
+
+# ---------------------------------------------------------------------------
+# Auswahl je Mandant (Frontend)
+# ---------------------------------------------------------------------------
+mandant_optionen:
+  kontenrahmen: [SKR03, SKR04]          # Pflicht
+  vermoegensart: [UV, AV]               # Pflicht, Vorgabe UV
+  bewertung: [gleitender_durchschnitt, fifo]   # Vorgabe gleitender_durchschnitt
+  # Die Bewertungsmethode ist nach § 252 Abs. 1 Nr. 6 HGB beizubehalten und
+  # wird deshalb dauerhaft am Mandanten gespeichert, nicht je Export gewählt.
+
+instrumentenklassen:
+  - aktie                 # inkl. ADR, § 8b KStG
+  - fonds                 # Investmentanteile, § 20 InvStG
+  - anleihe               # voll steuerpflichtig
+  - derivat_verbrieft     # Zertifikate, Optionsscheine, Turbos, Faktor-Zertifikate
+
+# Echte Optionen, Futures und CFDs werden NICHT gebucht.
+# Sie erzeugen einen UngebuchterBeleg mit Begründung.
+nicht_abbildbar:
+  - option_stillhalter
+  - future
+  - cfd
+
+fondskategorien:
+  - aktienfonds
+  - mischfonds
+  - immobilienfonds
+  - rentenfonds_sonstige
+  - unbestimmt
+
+# Teilfreistellung für Körperschaften (§ 20 InvStG), nur informativ –
+# das Tool rechnet sie nie, sondern schreibt sie als Marker in den Buchungstext.
+teilfreistellung_koerperschaft:
+  aktienfonds: 80
+  mischfonds: 40
+  immobilienfonds: 60
+  immobilienfonds_ausland: 80
+  rentenfonds_sonstige: 0
+  unbestimmt: null
+
+# Ableitung der Kategorie aus dem von der Bank angewandten Privatanlegersatz.
+# Schlüssel ist der Bankwert in Prozent.
+kategorie_aus_banksatz:
+  30: aktienfonds
+  15: mischfonds
+  60: immobilienfonds
+  80: immobilienfonds_ausland
+  0: rentenfonds_sonstige
+
+marker:
+  teilfreistellung: { aktienfonds: "#TF80#", mischfonds: "#TF40#",
+                      immobilienfonds: "#TF60#", immobilienfonds_ausland: "#TF80#",
+                      rentenfonds_sonstige: "#TF0#", unbestimmt: "#TF?#" }
+  dividende: "#DIV#"
+  vorabpauschale: "#VORABP#"
+  ak_pruefen: "#AK-PRÜFEN#"
+  depot_pruefen: "#DEPOT-PRÜFEN#"
+  adr: "#ADR#"
+  check: "#CHECK#"
+  klasse: "#KLASSE#"
+  lot_pruefen: "#LOT-PRÜFEN#"   # nur bei bewertung=fifo und fehlendem Closed-Lot-Detail
+buchungstext_max_laenge: 60      # DATEV-Feldgrenze, Marker als Präfix
+
+# ===========================================================================
+# SKR 03
+# ===========================================================================
+SKR03:
+  bank:
+    # Index = Depotnummer - 1
+    konten: [1200, 1210, 1220, 1230, 1240, 1250]
+    status: standard
+
+  UV:
+    bestand:
+      aktie:             { konten: [1348, 1338, 1339], status: [standard, anzulegen, anzulegen] }
+      fonds:             { konten: [1331, 1332, 1333], status: anzulegen }
+      anleihe:           { konten: [1334, 1335],       status: anzulegen }
+      derivat_verbrieft: { konten: [1336, 1337],       status: anzulegen }
+
+    aktie:
+      erloes_gewinn:        { konto: 2726, status: standard }
+      buchwert_gewinn:      { konto: 2724, status: standard }
+      erloes_verlust:       { konto: 2326, status: standard }
+      buchwert_verlust:     { konto: 2324, status: standard }
+      kosten_gewinn:        { konto: 4976, status: standard }
+      kosten_verlust:       { konto: 4977, status: standard }
+      dividende:            { konto: 2655, status: standard }
+      methode: brutto       # Erlös und Buchwert getrennt, wegen § 8b-Programmverbindung
+
+    fonds:
+      methode: netto        # Buchwert direkt gegen Bestand, Erfolgskonto trägt das Abgangsergebnis
+      ausschuettung:
+        aktienfonds:           { konto: 2690, status: anzulegen }
+        mischfonds:            { konto: 2691, status: anzulegen }
+        immobilienfonds:       { konto: 2692, status: anzulegen }
+        rentenfonds_sonstige:  { konto: 2693, status: anzulegen }
+        unbestimmt:            { konto: 2694, status: anzulegen }
+      abgang_gewinn:
+        aktienfonds:           { konto: 2695, status: anzulegen }
+        mischfonds:            { konto: 2696, status: anzulegen }
+        immobilienfonds:       { konto: 2697, status: anzulegen }
+        rentenfonds_sonstige:  { konto: 2698, status: anzulegen }
+        unbestimmt:            { konto: 2699, status: anzulegen }
+      abgang_verlust:
+        aktienfonds:           { konto: 2329, status: anzulegen }
+        mischfonds:            { konto: 2330, status: anzulegen }
+        immobilienfonds:       { konto: 2331, status: anzulegen }
+        rentenfonds_sonstige:  { konto: 2332, status: anzulegen }
+        unbestimmt:            { konto: 2333, status: anzulegen }
+      veraeusserungskosten:    { konto: 2334, status: anzulegen }
+      vorabpauschale_ertrag:   { konto: 2717, status: anzulegen }
+      ausgleichsposten_aktiv:  { konto: 981,  status: anzulegen }   # 0981
+      ausgleichsposten_aufloesung_verlust: { konto: 2335, status: anzulegen }
+      ausgleichsposten_aufloesung_ertrag:  { konto: 2718, status: anzulegen }
+
+    anleihe:
+      methode: netto
+      abgang_gewinn:        { konto: 2725, status: standard }
+      abgang_verlust:       { konto: 2325, status: standard }
+      zinsertrag:           { konto: 2654, status: standard }
+      stueckzinsen_aktiv:   { konto: 1501, status: standard }   # antizipativer Posten
+
+    derivat_verbrieft:
+      methode: netto
+      ertrag:  { konto: 2719, status: anzulegen }
+      verlust: { konto: 2336, status: anzulegen }
+
+  AV:
+    bestand:
+      aktie:   { konto: 530, status: standard }   # 0530
+      fonds:   { konto: 525, status: standard }   # 0525
+      anleihe: { konto: 535, status: standard }   # 0535
+    aktie:
+      dividende:        { konto: 2625, status: standard }
+      erloes_gewinn:    { konto: 8839, status: standard }
+      buchwert_gewinn:  { konto: 2318, status: standard }
+      erloes_verlust:   { konto: 8819, status: standard }
+      buchwert_verlust: { konto: 2313, status: standard }
+      kosten_gewinn:    { konto: 4976, status: standard }
+      kosten_verlust:   { konto: 4977, status: standard }
+    anleihe:
+      zinsertrag:     { konto: 2620, status: standard }
+      abgang_gewinn:  { konto: 8838, status: standard }
+      abgang_verlust: { konto: 8818, status: standard }
+    fonds:
+      ausschuettung:  { konto: 2626, status: anzulegen }
+      abgang_gewinn:  { konto: 8840, status: anzulegen }
+      abgang_verlust: { konto: 2314, status: anzulegen }
+
+  gemeinsam:
+    kapest:                     { konto: 2213, status: standard }
+    solz:                       { konto: 2216, status: standard }
+    quellensteuer_anrechenbar:  { konto: 2219, status: standard }
+    quellensteuer_dba:          { konto: 2218, status: standard }
+    quellensteuer_nicht_anrechenbar: { konto: 4340, status: standard }
+    verwahrentgelt:             { konto: 4971, status: standard }
+    nebenkosten_geldverkehr:    { konto: 4970, status: standard }
+    zinsertrag_sonstige:        { konto: 2650, status: standard }
+    zinsaufwand:                { konto: 2100, status: standard }
+    fx_ertrag_realisiert:       { konto: 2661, status: standard }
+    fx_aufwand_realisiert:      { konto: 2151, status: standard }
+
+# ===========================================================================
+# SKR 04
+# ===========================================================================
+SKR04:
+  bank:
+    konten: [1800, 1810, 1820, 1830, 1840, 1850]
+    status: standard
+
+  UV:
+    bestand:
+      aktie:             { konten: [1510, 1511, 1512, 1513, 1514], status: [standard, anzulegen, anzulegen, anzulegen, anzulegen] }
+      fonds:             { konten: [1515, 1516, 1517, 1518, 1519], status: anzulegen }
+      anleihe:           { konten: [1531, 1532, 1533],             status: anzulegen }
+      derivat_verbrieft: { konten: [1536, 1537, 1538],             status: anzulegen }
+
+    aktie:
+      erloes_gewinn:    { konto: 4906, status: standard }
+      buchwert_gewinn:  { konto: 4904, status: standard }
+      erloes_verlust:   { konto: 6906, status: standard }
+      buchwert_verlust: { konto: 6904, status: standard }
+      kosten_gewinn:    { konto: 6857, status: standard }
+      kosten_verlust:   { konto: 6858, status: standard }
+      dividende:        { konto: 7103, status: standard }
+      methode: brutto
+
+    fonds:
+      methode: netto
+      ausschuettung:
+        aktienfonds:           { konto: 7121, status: anzulegen }
+        mischfonds:            { konto: 7122, status: anzulegen }
+        immobilienfonds:       { konto: 7123, status: anzulegen }
+        rentenfonds_sonstige:  { konto: 7124, status: anzulegen }
+        unbestimmt:            { konto: 7125, status: anzulegen }
+      abgang_gewinn:
+        aktienfonds:           { konto: 4950, status: anzulegen }
+        mischfonds:            { konto: 4951, status: anzulegen }
+        immobilienfonds:       { konto: 4952, status: anzulegen }
+        rentenfonds_sonstige:  { konto: 4953, status: anzulegen }
+        unbestimmt:            { konto: 4954, status: anzulegen }
+      abgang_verlust:
+        aktienfonds:           { konto: 6950, status: anzulegen }
+        mischfonds:            { konto: 6951, status: anzulegen }
+        immobilienfonds:       { konto: 6952, status: anzulegen }
+        rentenfonds_sonstige:  { konto: 6953, status: anzulegen }
+        unbestimmt:            { konto: 6954, status: anzulegen }
+      veraeusserungskosten:    { konto: 6955, status: anzulegen }
+      vorabpauschale_ertrag:   { konto: 7126, status: anzulegen }
+      ausgleichsposten_aktiv:  { konto: 1901, status: anzulegen }
+      ausgleichsposten_aufloesung_verlust: { konto: 6956, status: anzulegen }
+      ausgleichsposten_aufloesung_ertrag:  { konto: 4955, status: anzulegen }
+
+    anleihe:
+      methode: netto
+      abgang_gewinn:       { konto: 4905, status: standard }
+      abgang_verlust:      { konto: 6905, status: standard }
+      zinsertrag:          { konto: 7115, status: standard }
+      stueckzinsen_aktiv:  { konto: 1301, status: standard }
+
+    derivat_verbrieft:
+      methode: netto
+      ertrag:  { konto: 4956, status: anzulegen }
+      verlust: { konto: 6957, status: anzulegen }
+
+  AV:
+    bestand:
+      aktie:   { konto: 910, status: standard }   # 0910
+      fonds:   { konto: 900, status: standard }   # 0900
+      anleihe: { konto: 920, status: standard }   # 0920
+    aktie:
+      dividende:        { konto: 7014, status: standard }
+      erloes_gewinn:    { konto: 4852, status: standard }
+      buchwert_gewinn:  { konto: 4858, status: standard }
+      erloes_verlust:   { konto: 6892, status: standard }
+      buchwert_verlust: { konto: 6898, status: standard }
+      kosten_gewinn:    { konto: 6857, status: standard }
+      kosten_verlust:   { konto: 6858, status: standard }
+    anleihe:
+      zinsertrag:     { konto: 7010, status: standard }
+      abgang_gewinn:  { konto: 4851, status: standard }
+      abgang_verlust: { konto: 6891, status: standard }
+    fonds:
+      ausschuettung:  { konto: 7015, status: anzulegen }
+      abgang_gewinn:  { konto: 4853, status: anzulegen }
+      abgang_verlust: { konto: 6893, status: anzulegen }
+
+  gemeinsam:
+    kapest:                     { konto: 7630, status: standard }
+    solz:                       { konto: 7633, status: standard }
+    quellensteuer_anrechenbar:  { konto: 7639, status: standard }
+    quellensteuer_dba:          { konto: 7638, status: standard }
+    quellensteuer_nicht_anrechenbar: { konto: 7650, status: standard }
+    verwahrentgelt:             { konto: 6879, status: standard }
+    nebenkosten_geldverkehr:    { konto: 6855, status: standard }
+    zinsertrag_sonstige:        { konto: 7100, status: standard }
+    zinsaufwand:                { konto: 7300, status: standard }
+    fx_ertrag_realisiert:       { konto: 4847, status: standard }
+    fx_aufwand_realisiert:      { konto: 6881, status: standard }
+
+# ===========================================================================
+# Klartextbezeichnungen für das Kontenblatt an die Kanzlei
+# Schlüssel: <klasse>/<zweck>[/<kategorie>] bzw. bestand/<klasse>
+# ===========================================================================
+bezeichnungen:
+  bestand/aktie: "Aktien und aktienähnliche Wertpapiere"
+  bestand/fonds: "Investmentanteile (Fonds, ETF)"
+  bestand/anleihe: "Anleihen"
+  bestand/derivat_verbrieft: "Verbriefte Derivate (Zertifikate, Optionsscheine, Turbos)"
+
+  aktie/erloes_gewinn: "Veräußerungserlös Aktien bei Buchgewinn, § 8b Abs. 2 KStG"
+  aktie/erloes_verlust: "Veräußerungserlös Aktien bei Buchverlust, § 8b Abs. 3 S. 3 KStG"
+  aktie/buchwert_gewinn: "Buchwertabgang Aktien bei Buchgewinn"
+  aktie/buchwert_verlust: "Buchwertabgang Aktien bei Buchverlust"
+  aktie/kosten_gewinn: "Veräußerungskosten Aktien bei Buchgewinn"
+  aktie/kosten_verlust: "Veräußerungskosten Aktien bei Buchverlust"
+  aktie/dividende: "Dividendenerträge"
+
+  fonds/ausschuettung/aktienfonds: "Erträge aus Investmentanteilen (Ausschüttung) — Aktienfonds"
+  fonds/ausschuettung/mischfonds: "Erträge aus Investmentanteilen (Ausschüttung) — Mischfonds"
+  fonds/ausschuettung/immobilienfonds: "Erträge aus Investmentanteilen (Ausschüttung) — Immobilienfonds"
+  fonds/ausschuettung/rentenfonds_sonstige: "Erträge aus Investmentanteilen (Ausschüttung) — Renten- und sonstige Fonds"
+  fonds/ausschuettung/unbestimmt: "Erträge aus Investmentanteilen (Ausschüttung) — Kategorie unbestimmt"
+  fonds/abgang_gewinn/aktienfonds: "Erträge aus dem Abgang von Investmentanteilen — Aktienfonds"
+  fonds/abgang_gewinn/mischfonds: "Erträge aus dem Abgang von Investmentanteilen — Mischfonds"
+  fonds/abgang_gewinn/immobilienfonds: "Erträge aus dem Abgang von Investmentanteilen — Immobilienfonds"
+  fonds/abgang_gewinn/rentenfonds_sonstige: "Erträge aus dem Abgang von Investmentanteilen — Renten- und sonstige Fonds"
+  fonds/abgang_gewinn/unbestimmt: "Erträge aus dem Abgang von Investmentanteilen — Kategorie unbestimmt"
+  fonds/abgang_verlust/aktienfonds: "Verluste aus dem Abgang von Investmentanteilen — Aktienfonds"
+  fonds/abgang_verlust/mischfonds: "Verluste aus dem Abgang von Investmentanteilen — Mischfonds"
+  fonds/abgang_verlust/immobilienfonds: "Verluste aus dem Abgang von Investmentanteilen — Immobilienfonds"
+  fonds/abgang_verlust/rentenfonds_sonstige: "Verluste aus dem Abgang von Investmentanteilen — Renten- und sonstige Fonds"
+  fonds/abgang_verlust/unbestimmt: "Verluste aus dem Abgang von Investmentanteilen — Kategorie unbestimmt"
+  fonds/veraeusserungskosten: "Aufwendung aus der Veräußerung von Investmentanteilen"
+  fonds/vorabpauschale_ertrag: "Erträge aus Investmentanteilen (Bildung Vorabpauschale)"
+  fonds/ausgleichsposten_aktiv: "Aktiver steuerlicher Ausgleichsposten nach dem Investmentsteuergesetz"
+  fonds/ausgleichsposten_aufloesung_verlust: "Verluste aus der Auflösung der Ausgleichsposten für Investmentanteile"
+  fonds/ausgleichsposten_aufloesung_ertrag: "Erträge aus der Auflösung der Ausgleichsposten für Investmentanteile"
+
+  anleihe/abgang_gewinn: "Erträge aus dem Abgang von Anleihen"
+  anleihe/abgang_verlust: "Verluste aus dem Abgang von Anleihen"
+  anleihe/zinsertrag: "Zinserträge und erhaltene Stückzinsen"
+  anleihe/stueckzinsen_aktiv: "Gezahlte Stückzinsen (antizipativer Posten)"
+
+  derivat_verbrieft/ertrag: "Erträge aus Termingeschäften, § 15 Abs. 4 S. 3 EStG"
+  derivat_verbrieft/verlust: "Verluste aus Termingeschäften, § 15 Abs. 4 S. 3 EStG"
+
+# ===========================================================================
+# Abgeschaffte Konten – dürfen im Code nicht mehr vorkommen
+# ===========================================================================
+entfallen:
+  1780: "war anrechenbare Steuern, ersetzt durch 7630 / 2213 und 7633 / 2216"
+  6305: "war Finanztransaktionssteuer, im SKR 04 mit Raumkosten belegt; FTT wird aktiviert"
+  6860: "war Verwahrentgelt, ersetzt durch 6879 / 4971"
+  7700: "war Dividendenerträge, ersetzt durch 7103 / 2655"
+  7810: "war Fondserträge, ersetzt durch die Kategoriekonten"
+  1801: "war Bank Depot 2, ersetzt durch 1810 (Standardkonto Bank 1)"
+  1802: "war Bank Depot 3, ersetzt durch 1820 (Standardkonto Bank 2)"
