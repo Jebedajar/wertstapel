@@ -133,14 +133,20 @@ class Buchungsengine:
 
     # ── Verkauf ───────────────────────────────────────────────────────────
     def verkauf(self, nb: NormBeleg) -> Tuple[List[Buchung], List[UngebuchterBeleg]]:
-        if nb.buchwert is None:
+        # Ein Buchwert von 0 bei gleichzeitig unvollständiger Bewertung ist
+        # kein Buchwert, sondern eine Wissenslücke. Würden wir buchen, bliebe
+        # das Bestandskonto ungemindert und der gesamte Erlös erschiene als
+        # Gewinn — der Stapel sähe vollständig aus und wäre es nicht.
+        if nb.buchwert is None or (nb.buchwert <= NULL and nb.buchwert_unvollstaendig):
             return [], [UngebuchterBeleg(
                 typ="VERKAUF", datum=nb.schlusstag, betrag=nb.ausmachender_betrag,
                 isin=nb.isin, bezeichnung=nb.bezeichnung, seite=nb.seite,
-                grund="Kein Anschaffungswert ermittelbar",
+                grund="Kein Anschaffungswert ermittelbar (Altbestand vor dem "
+                      "Exportzeitraum)",
                 empfehlung="Buchwert aus der Vorjahresbilanz ergänzen und "
                            "manuell buchen. Eine Buchung mit Buchwert 0 würde "
-                           "den gesamten Erlös als Gewinn ausweisen.")]
+                           "den gesamten Erlös als Gewinn ausweisen und das "
+                           "Bestandskonto ungemindert lassen.")]
 
         methode = self.m.methode(nb.klasse, self._ctx(nb))
         if methode == "brutto":
@@ -474,13 +480,20 @@ def _injiziere_marker(buchungen: List[Buchung], belege: List[NormBeleg]) -> List
             if m not in bk.buchungstext and m not in offen:
                 offen.append(m)
         offen.sort(key=lambda m: MARKER_PRIO.index(m) if m in MARKER_PRIO else 99)
-        while offen:
-            if len(" ".join(offen)) + 1 + len(bk.buchungstext) <= 60:
-                break
+
+        # Marker haben Vorrang vor dem Wertpapiernamen. Passt beides nicht in
+        # die 60 Zeichen, wird der Text gekürzt, nicht der Marker verworfen —
+        # ein weggefallenes #AK-PRÜFEN# ist genau der stille Fehler, den die
+        # Marker verhindern sollen. Erst wenn die Marker allein das Limit
+        # sprengen, fällt der letzte weg.
+        while offen and len(" ".join(offen)) > 60:
             verworfen.append(f"{bk.belegfeld_1}: {offen[-1]} (Zeichenlimit)")
             offen.pop()
         if offen:
-            bk.buchungstext = f"{' '.join(offen)} {bk.buchungstext}"[:60]
+            praefix = " ".join(offen)
+            rest = 60 - len(praefix) - 1
+            text = bk.buchungstext[:rest].rstrip() if rest > 0 else ""
+            bk.buchungstext = f"{praefix} {text}".strip()[:60]
     return verworfen
 
 
