@@ -1,6 +1,7 @@
 import os
 import sys
 import uuid
+import json
 import sqlite3
 import secrets
 from pathlib import Path
@@ -12,6 +13,7 @@ from fastapi import (
     FastAPI, UploadFile, File, Form, HTTPException,
     Request, BackgroundTasks, Depends
 )
+from typing import List as _List
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
@@ -119,12 +121,14 @@ def init_db():
             )
         """)
         for col, default in [
-            ("skr",         "'SKR04'"),
-            ("bank",        "'1801'"),
-            ("mandant",     "''"),
-            ("consent_at",  "NULL"),
-            ("consent_ip",  "NULL"),
-            ("agb_version", "NULL"),
+            ("skr",          "'SKR04'"),
+            ("bank",         "'1801'"),
+            ("mandant",      "''"),
+            ("vermoegensart","'UV'"),
+            ("bewertung",    "'fifo'"),
+            ("consent_at",   "NULL"),
+            ("consent_ip",   "NULL"),
+            ("agb_version",  "NULL"),
         ]:
             try:
                 conn.execute(f"ALTER TABLE jobs ADD COLUMN {col} TEXT DEFAULT {default}")
@@ -180,7 +184,7 @@ def _send_done_email(email: str, job_id: str):
 
 
 def process_job(job_id: str):
-    from run import main as run_main
+    from run import main_multi
 
     output_dir = f"/tmp/uploads/{job_id}_out"
 
@@ -190,18 +194,27 @@ def process_job(job_id: str):
     try:
         with get_db() as conn:
             row = conn.execute(
-                "SELECT pdf_path, user_email, skr, bank, mandant FROM jobs WHERE id=?", (job_id,)
+                "SELECT pdf_path, user_email, skr, bank, mandant, vermoegensart, bewertung FROM jobs WHERE id=?",
+                (job_id,)
             ).fetchone()
 
         if not row or not row["pdf_path"]:
-            raise ValueError("PDF path not found")
+            raise ValueError("Dateipfad nicht gefunden")
 
-        run_main(
-            row["pdf_path"],
+        raw = row["pdf_path"]
+        try:
+            file_paths = json.loads(raw)
+        except Exception:
+            file_paths = [raw]
+
+        main_multi(
+            file_paths,
             output_dir,
             skr=row["skr"] or "SKR04",
-            bank=row["bank"] or "1801",
+            bank=row["bank"] or None,
             mandant=row["mandant"] or "",
+            vermoegensart=row["vermoegensart"] or "UV",
+            bewertung=row["bewertung"] or "fifo",
         )
 
         with get_db() as conn:
@@ -212,6 +225,13 @@ def process_job(job_id: str):
 
         _send_done_email(row["user_email"], job_id)
 
+    except ValueError as e:
+        print(f"Job {job_id} validation error: {e}")
+        with get_db() as conn:
+            conn.execute(
+                "UPDATE jobs SET status='error', output_dir=? WHERE id=?",
+                (f"ERR:{e}", job_id),
+            )
     except Exception as e:
         print(f"Job {job_id} failed: {e}")
         with get_db() as conn:
@@ -220,41 +240,58 @@ def process_job(job_id: str):
 
 @app.post("/api/upload")
 async def upload_pdf(
-    request:  Request,
-    file:     UploadFile = File(...),
-    email:    str = Form(...),
-    plan:     str = Form("single"),
-    skr:      str = Form("SKR04"),
-    bank:     str = Form("1801"),
-    mandant:  str = Form(""),
-    consent:  str = Form("false"),
+    request:       Request,
+    files:         _List[UploadFile] = File(...),
+    email:         str = Form(...),
+    plan:          str = Form("single"),
+    skr:           str = Form("SKR04"),
+    bank:          str = Form("1801"),
+    vermoegensart: str = Form("UV"),
+    bewertung:     str = Form("fifo"),
+    mandant:       str = Form(""),
+    consent:       str = Form("false"),
 ):
+    if not files:
+        raise HTTPException(400, "Mindestens eine Datei erforderlich")
+
     allowed_ext = {".pdf", ".xlsx", ".xls", ".csv"}
-    if not file.filename or not any(file.filename.lower().endswith(ext) for ext in allowed_ext):
-        raise HTTPException(400, "Nur PDF-, XLSX-, XLS- oder CSV-Dateien erlaubt")
-
-    content = await file.read()
-    if len(content) > 100 * 1024 * 1024:
-        raise HTTPException(400, "Datei zu groß (max. 100 MB)")
-
     plan_cfg = PLAN_MAP.get(plan)
     if not plan_cfg:
         raise HTTPException(400, "Ungültiger Plan")
     if consent != "true":
         raise HTTPException(400, "Bitte AGB, AVV und Datenschutzerklärung akzeptieren")
 
-    job_id      = str(uuid.uuid4())
-    consent_at  = datetime.utcnow().isoformat()
-    consent_ip  = (request.headers.get("x-real-ip") or request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else ""))
-    file_ext = Path(file.filename).suffix.lower() if file.filename else ".pdf"
-    pdf_path = UPLOAD_DIR / f"{job_id}{file_ext}"
-    pdf_path.write_bytes(content)
+    job_id     = str(uuid.uuid4())
+    consent_at = datetime.utcnow().isoformat()
+    consent_ip = (
+        request.headers.get("x-real-ip")
+        or request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        or (request.client.host if request.client else "")
+    )
+
+    saved_paths: list[str] = []
+    for idx, upload in enumerate(files):
+        if not upload.filename or not any(upload.filename.lower().endswith(ext) for ext in allowed_ext):
+            raise HTTPException(400, f"Nur PDF-, XLSX-, XLS- oder CSV-Dateien erlaubt: {upload.filename}")
+        content = await upload.read()
+        if len(content) > 100 * 1024 * 1024:
+            raise HTTPException(400, f"Datei zu groß (max. 100 MB): {upload.filename}")
+        file_ext = Path(upload.filename).suffix.lower()
+        dest = UPLOAD_DIR / f"{job_id}_{idx}{file_ext}"
+        dest.write_bytes(content)
+        saved_paths.append(str(dest))
+
+    pdf_path_json = json.dumps(saved_paths)
 
     with get_db() as conn:
         conn.execute("INSERT OR IGNORE INTO users (email) VALUES (?)", (email,))
         conn.execute(
-            "INSERT INTO jobs (id, user_email, plan_id, status, pdf_path, skr, bank, mandant, consent_at, consent_ip, agb_version) VALUES (?, ?, ?, 'awaiting_payment', ?, ?, ?, ?, ?, ?, ?)",
-            (job_id, email, plan_cfg["price_id"], str(pdf_path), skr, bank, mandant, consent_at, consent_ip, AGB_VERSION),
+            """INSERT INTO jobs
+               (id, user_email, plan_id, status, pdf_path, skr, bank, vermoegensart, bewertung,
+                mandant, consent_at, consent_ip, agb_version)
+               VALUES (?, ?, ?, 'awaiting_payment', ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (job_id, email, plan_cfg["price_id"], pdf_path_json, skr, bank,
+             vermoegensart, bewertung, mandant, consent_at, consent_ip, AGB_VERSION),
         )
 
     session = stripe.checkout.Session.create(
@@ -326,7 +363,10 @@ async def get_status(job_id: str):
 
     if row["status"] == "done" and row["output_dir"]:
         out = Path(row["output_dir"])
-        result["files"] = [f.name for f in out.iterdir() if f.is_file()] if out.exists() else []
+        result["files"] = sorted(f.name for f in out.iterdir() if f.is_file()) if out.exists() else []
+
+    if row["status"] == "error" and row["output_dir"] and row["output_dir"].startswith("ERR:"):
+        result["error_message"] = row["output_dir"][4:]
 
     return result
 

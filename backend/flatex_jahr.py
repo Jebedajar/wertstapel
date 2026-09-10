@@ -25,7 +25,7 @@ from typing import List, Optional, Dict
 from collections import Counter
 
 from flatex_jahr_types import Beleg, UngebuchterBeleg, IgnoredPage
-from depot_registry import DepotRegistry, SPLIT_BESTANDSKONTO
+from depot_registry import DepotRegistry
 import parser_flatex_kontoumsaetze as pk
 import parser_flatex_ertraegnis as pe
 
@@ -115,8 +115,11 @@ class JahresErgebnis:
             if betroffen:
                 z.append(f"  → {len(betroffen)} Verkauf/Verkäufe mit Marker "
                          "#VORABP# gekennzeichnet.")
-            z.append("  → Die gezahlte Steuer ist als Abfluss auf 1780 gebucht. "
-                     "Der fiktive Ertrag ist NICHT gebucht (§ 255 HGB).")
+            z.append("  → Der tatsächliche Steuerabfluss steht im Hauptstapel "
+                     "(Beleg VORABPAUSCHALE_STEUER, Konto laut Kontenmatrix). "
+                     "Der fiktive Ertrag ist NICHT im Hauptstapel enthalten "
+                     "(§ 255 HGB), sondern im Steuerstapel als Bildung des "
+                     "Ausgleichspostens — siehe Vorabpauschalen-Blatt.")
             z.append("  → OFFEN: jahresübergreifende Kumulierung — Verkäufe in "
                      "Folgejahren benötigen die Vorabpauschalen der Vorjahre, "
                      "die in diesem Dokument nicht enthalten sind.")
@@ -139,14 +142,13 @@ def verarbeite_jahresmodus(
                           (Standard: eigenes Bestandskonto je Depot).
     """
     csv_pfade = csv_pfade or []
-    if split_bestandskonto is None:
-        split_bestandskonto = SPLIT_BESTANDSKONTO
     erg = JahresErgebnis()
 
-    registry = DepotRegistry(
-        overrides=konten_overrides,
-        split_bestand=split_bestandskonto,
-    )
+    # konten_overrides und split_bestandskonto werden nicht mehr ausgewertet:
+    # Kontonummern kommen seit Fassung 3 ausschließlich aus der Kontenmatrix
+    # (config/konten.yaml). Die Parameter bleiben in der Signatur, damit
+    # bestehende Aufrufer nicht brechen.
+    registry = DepotRegistry()
 
     # ── Schritt 1: CSVs ─────────────────────────────────────────
     ta_index: Dict[int, dict] = {}

@@ -1,10 +1,26 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { PLANS } from '@/lib/data'
 import LoadingLogo from './LoadingLogo'
 
 type Phase = 'config' | 'paying' | 'redirecting'
+
+const VK_DEFAULTS: Record<string, string> = { SKR04: '1801', SKR03: '1200' }
+const BANKBEREICH: Record<string, [number, number]> = {
+  SKR03: [1000, 1299],
+  SKR04: [1600, 1899],
+}
+
+function validateVK(value: string, skr: string): string {
+  const nr = parseInt(value, 10)
+  if (isNaN(nr) || String(nr) !== value.trim()) return 'Keine gültige Kontonummer.'
+  const bereich = BANKBEREICH[skr]
+  if (bereich && (nr < bereich[0] || nr > bereich[1])) {
+    return `Konto ${value} liegt nicht im Bankkontenbereich des ${skr} (${bereich[0]}–${bereich[1]}).`
+  }
+  return ''
+}
 
 interface User {
   email: string
@@ -54,15 +70,29 @@ function CreditBadge({ user }: { user: User }) {
 }
 
 export default function ConfigModal({ files, onClose, user }: Props) {
-  const [skr,     setSkr]     = useState('SKR04')
-  const [bank,    setBank]    = useState('1801')
-  const [mandant, setMandant] = useState('')
-  const [plan,    setPlan]    = useState('five')
-  const [email,   setEmail]   = useState('')
-  const [consent, setConsent] = useState(false)
-  const [editing, setEditing] = useState(false)
-  const [phase,   setPhase]   = useState<Phase>('config')
-  const [error,   setError]   = useState('')
+  const [skr,           setSkr]           = useState('SKR04')
+  const [bank,          setBank]          = useState('1801')
+  const [vkTouched,     setVkTouched]     = useState(false)
+  const [vkError,       setVkError]       = useState('')
+  const [vermoegensart, setVermoegensart] = useState('UV')
+  const [bewertung,     setBewertung]     = useState('fifo')
+  const [mandant,       setMandant]       = useState('')
+  const [plan,          setPlan]          = useState('five')
+  const [email,         setEmail]         = useState('')
+  const [consent,       setConsent]       = useState(false)
+  const [editing,       setEditing]       = useState(false)
+  const [phase,         setPhase]         = useState<Phase>('config')
+  const [error,         setError]         = useState('')
+
+  useEffect(() => {
+    if (!vkTouched) setBank(VK_DEFAULTS[skr] ?? '')
+  }, [skr, vkTouched])
+
+  const handleVkChange = (val: string) => {
+    setBank(val)
+    setVkTouched(true)
+    setVkError('')
+  }
 
   const selectedPlan = PLANS.find(p => p.id === plan)!
   const multi = files.length > 1
@@ -74,26 +104,26 @@ export default function ConfigModal({ files, onClose, user }: Props) {
 
   const handleDirectExport = async () => {
     if (files.length === 0) { setError('Keine Datei ausgewählt.'); return }
+    const vkErr = validateVK(bank, skr)
+    if (vkErr) { setVkError(vkErr); setEditing(true); return }
     setError('')
     setPhase('paying')
     try {
-      let lastJobId: string | undefined
-      for (const file of files) {
-        const form = new FormData()
-        form.append('file', file)
-        form.append('skr', skr)
-        form.append('bank', bank)
-        form.append('mandant', mandant.trim())
+      const form = new FormData()
+      files.forEach(f => form.append('files', f))
+      form.append('skr', skr)
+      form.append('bank', bank)
+      form.append('vermoegensart', vermoegensart)
+      form.append('bewertung', bewertung)
+      form.append('mandant', mandant.trim())
 
-        const res = await fetch('/api/export/start', { method: 'POST', body: form, credentials: 'include' })
-        let data: { detail?: string; job_id?: string }
-        try { data = await res.json() } catch { data = { detail: 'Serverfehler – bitte versuche es erneut.' } }
+      const res = await fetch('/api/export/start', { method: 'POST', body: form, credentials: 'include' })
+      let data: { detail?: string; job_id?: string }
+      try { data = await res.json() } catch { data = { detail: 'Serverfehler – bitte versuche es erneut.' } }
 
-        if (!res.ok) throw new Error(data.detail ?? `Fehler ${res.status}`)
-        lastJobId = data.job_id
-      }
+      if (!res.ok) throw new Error(data.detail ?? `Fehler ${res.status}`)
       setPhase('redirecting')
-      window.location.href = lastJobId ? `/success?job_id=${lastJobId}` : '/success'
+      window.location.href = data.job_id ? `/success?job_id=${data.job_id}` : '/success'
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Unbekannter Fehler')
       setPhase('config')
@@ -109,31 +139,29 @@ export default function ConfigModal({ files, onClose, user }: Props) {
       setError('Keine Datei ausgewählt.')
       return
     }
+    const vkErr = validateVK(bank, skr)
+    if (vkErr) { setVkError(vkErr); setEditing(true); return }
     setError('')
     setPhase('paying')
     try {
-      let firstCheckoutUrl: string | undefined
+      const form = new FormData()
+      files.forEach(f => form.append('files', f))
+      form.append('email', email.trim())
+      form.append('plan', plan)
+      form.append('skr', skr)
+      form.append('bank', bank)
+      form.append('vermoegensart', vermoegensart)
+      form.append('bewertung', bewertung)
+      form.append('mandant', mandant.trim())
+      form.append('consent', 'true')
 
-      for (const file of files) {
-        const form = new FormData()
-        form.append('file', file)
-        form.append('email', email.trim())
-        form.append('plan', plan)
-        form.append('skr', skr)
-        form.append('bank', bank)
-        form.append('mandant', mandant.trim())
-        form.append('consent', 'true')
+      const res = await fetch('/api/upload', { method: 'POST', body: form })
+      let data: { detail?: string; checkout_url?: string }
+      try { data = await res.json() } catch { data = { detail: 'Serverfehler – bitte versuche es erneut.' } }
 
-        const res = await fetch('/api/upload', { method: 'POST', body: form })
-        let data: { detail?: string; checkout_url?: string }
-        try { data = await res.json() } catch { data = { detail: 'Serverfehler – bitte versuche es erneut.' } }
-
-        if (!res.ok) throw new Error(data.detail ?? `Fehler ${res.status}`)
-        if (!firstCheckoutUrl) firstCheckoutUrl = data.checkout_url
-      }
-
+      if (!res.ok) throw new Error(data.detail ?? `Fehler ${res.status}`)
       setPhase('redirecting')
-      window.location.href = firstCheckoutUrl!
+      window.location.href = data.checkout_url!
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Unbekannter Fehler')
       setPhase('config')
@@ -182,10 +210,15 @@ export default function ConfigModal({ files, onClose, user }: Props) {
             {!editing ? (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                 <span style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.6 }}>
-                  {[skr, `Bankkonto ${bank}`, mandant.trim() || 'Mandantennummer —'].map((p, i) => (
+                  {[
+                    skr,
+                    vermoegensart === 'AV' ? 'Anlagevermögen' : 'Umlaufvermögen',
+                    `VK ${bank}`,
+                    bewertung === 'fifo' ? 'FIFO' : 'Gleit. Ø',
+                  ].map((p, i) => (
                     <span key={i}>
                       {i > 0 && <span style={{ color: 'var(--fa)', margin: '0 7px' }}>·</span>}
-                      <span style={{ fontFamily: i === 0 ? 'var(--font-mono),ui-monospace,monospace' : 'inherit', fontSize: 13, color: i === 2 && !mandant.trim() ? 'var(--fa)' : 'var(--ink2)' }}>{p}</span>
+                      <span style={{ fontFamily: i === 0 || i === 2 ? 'var(--font-mono),ui-monospace,monospace' : 'inherit', fontSize: 13, color: 'var(--ink2)' }}>{p}</span>
                     </span>
                   ))}
                 </span>
@@ -195,6 +228,7 @@ export default function ConfigModal({ files, onClose, user }: Props) {
               </div>
             ) : (
               <div>
+                {/* SKR */}
                 <div style={{ marginBottom: 14 }}>
                   <Eyebrow>Kontenrahmen</Eyebrow>
                   <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap' }}>
@@ -202,11 +236,53 @@ export default function ConfigModal({ files, onClose, user }: Props) {
                     <Radio val="SKR03" current={skr} onSet={setSkr} />
                   </div>
                 </div>
+                {/* Vermögensart */}
+                <div style={{ marginBottom: 14 }}>
+                  <Eyebrow>Vermögensart</Eyebrow>
+                  <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap' }}>
+                    {[['UV', 'Umlaufvermögen'], ['AV', 'Anlagevermögen']].map(([val, label]) => {
+                      const sel = vermoegensart === val
+                      return (
+                        <label key={val} onClick={() => setVermoegensart(val)}
+                          style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14, color: 'var(--ink)', userSelect: 'none' as const }}>
+                          <div style={{
+                            width: 16, height: 16, borderRadius: '50%', flexShrink: 0,
+                            border: `2px solid ${sel ? 'var(--gr)' : 'var(--ln2)'}`,
+                            background: sel ? 'var(--gr)' : '#fff',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}>
+                            {sel && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />}
+                          </div>
+                          <span style={{ fontFamily: 'var(--font-mono),ui-monospace,monospace', fontSize: 13 }}>{val}</span>
+                          <span style={{ fontSize: 11, color: 'var(--mu)' }}>{label}</span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                </div>
+                {/* Bewertungsmethode */}
+                <div style={{ marginBottom: 14 }}>
+                  <Eyebrow>Bewertungsmethode</Eyebrow>
+                  <select value={bewertung} onChange={e => setBewertung(e.target.value)}
+                    style={{ fontFamily: 'var(--font-mono),ui-monospace,monospace', fontSize: 13, padding: '9px 11px', border: '1px solid var(--ln)', borderRadius: 8, outline: 'none', width: '100%', color: 'var(--ink)', background: '#fff' }}>
+                    <option value="fifo">FIFO</option>
+                    <option value="gleitender_durchschnitt">Gleitender Durchschnitt</option>
+                  </select>
+                  <div style={{ fontSize: 11, color: 'var(--mu)', marginTop: 5 }}>
+                    Die einmal gewählte Methode ist beizubehalten (§ 252 Abs. 1 Nr. 6 HGB).
+                  </div>
+                </div>
+                {/* VK + Mandant */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 10 }}>
                   <div>
-                    <Eyebrow>Bankkonto</Eyebrow>
-                    <input value={bank} onChange={e => setBank(e.target.value)} placeholder="1801"
-                      style={{ fontFamily: 'var(--font-mono),ui-monospace,monospace', fontSize: 13, padding: '9px 11px', border: '1px solid var(--ln)', borderRadius: 8, outline: 'none', width: '100%', color: 'var(--ink)' }} />
+                    <Eyebrow>Verrechnungskonto</Eyebrow>
+                    <input value={bank}
+                      onChange={e => handleVkChange(e.target.value)}
+                      onBlur={() => { if (bank) setVkError(validateVK(bank, skr)) }}
+                      placeholder={VK_DEFAULTS[skr] ?? '1801'}
+                      style={{ fontFamily: 'var(--font-mono),ui-monospace,monospace', fontSize: 13, padding: '9px 11px', border: `1px solid ${vkError ? '#ef4444' : 'var(--ln)'}`, borderRadius: 8, outline: 'none', width: '100%', color: 'var(--ink)' }} />
+                    {vkError && <div style={{ fontSize: 11, color: '#dc2626', marginTop: 4 }}>{vkError}</div>}
+                    {!vkError && <div style={{ fontSize: 11, color: 'var(--mu)', marginTop: 4 }}>Eigenes Bankkonto des Depots</div>}
                   </div>
                   <div>
                     <Eyebrow>Mandantennr. <span style={{ textTransform: 'none' as const, letterSpacing: 0, fontSize: 10, opacity: .6 }}>(optional)</span></Eyebrow>
