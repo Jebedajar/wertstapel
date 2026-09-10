@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from datetime import datetime, date
 from decimal import Decimal
@@ -35,11 +36,28 @@ import einrichtungsblatt
 BASIS = Path(__file__).parent
 KONTEN_YAML = BASIS / "config" / "konten.yaml"
 CONFIG_JSON = BASIS / "config.json"
+ISIN_BASIS = Path(os.getenv("WERTSTAPEL_ISIN_DIR", "/var/www/wertstapel/data/isin"))
+
+BANKBEREICH = {"SKR03": (1000, 1299), "SKR04": (1600, 1899)}
 
 
 # ───────────────────────────────────────────────────────────────────────────
 # Erkennung
 # ───────────────────────────────────────────────────────────────────────────
+def pruefe_verrechnungskonto(konto: str, ctx: "KontenKontext") -> None:
+    """Wirft ValueError, wenn konto nicht im Bankkontenbereich des SKR liegt."""
+    try:
+        nr = int(konto)
+    except (ValueError, TypeError):
+        raise ValueError(f"'{konto}' ist keine gültige Kontonummer.")
+    bereich = BANKBEREICH.get(ctx.kontenrahmen)
+    if bereich and not (bereich[0] <= nr <= bereich[1]):
+        von, bis = bereich
+        raise ValueError(
+            f"Konto {konto} liegt nicht im Bankkontenbereich des {ctx.kontenrahmen} "
+            f"({von}–{bis}). Bitte ein Verrechnungskonto aus diesem Bereich angeben.")
+
+
 def detect_bank(file_path: str) -> str:
     p = file_path.lower()
 
@@ -252,13 +270,15 @@ def main_multi(file_paths: List[str], output_dir: str = "./out",
     config, matrix, ctx = lade_config(skr, vermoegensart, mandant, bewertung)
 
     isin_pfad = Path(isin_tabelle_pfad) if isin_tabelle_pfad else \
-        out / f"isin_{mandant or 'default'}.json"
+        ISIN_BASIS / f"{mandant or 'default'}.json"
     isin_tabelle = IsinTabelle.laden(isin_pfad)
 
     # Das Verrechnungskonto des Depots ist ein eigenes Bankkonto neben dem
     # laufenden Geschäftskonto. Es kommt deshalb aus der Oberfläche und nicht
     # aus der Matrix; deren Wert dient nur als Vorschlag.
     verrechnungskonto = str(bank) if bank else matrix.bank(ctx)
+    if bank:
+        pruefe_verrechnungskonto(verrechnungskonto, ctx)
     matrix.setze_bank_override(1, verrechnungskonto)
     vorgabe = matrix._rahmen(ctx)["bank"]["konten"][0]
     protokoll_hinweis_bank = (
@@ -296,8 +316,12 @@ def main_multi(file_paths: List[str], output_dir: str = "./out",
         protokoll_extra.append(erg_jahr.protokoll())
         # Depotnamen auf 1-basierte Indizes abbilden; die Kontenvergabe
         # übernimmt die Matrix, nicht mehr die DepotRegistry.
-        namen = sorted({b.depot for b in erg_jahr.belege if getattr(b, "depot", None)})
-        depot_map = {n: i + 1 for i, n in enumerate(namen)}
+        # Stabile Zuordnung über die Registry (sortiert nach Kontonummer),
+        # nicht über eine eigene Sortierung der im Lauf vorkommenden
+        # Depotnamen — sonst kippt die Zuordnung, sobald ein Mandant sein
+        # Depot umbenennt, und zwei Wirtschaftsjahre landen auf vertauschten
+        # Bankkonten, ohne dass es auffällt.
+        depot_map = {d.name: d.index + 1 for d in erg_jahr.registry.alle()}
         if depot_overrides:
             depot_map.update(depot_overrides)
         for v in getattr(erg_jahr, "vorabpauschalen", []):
