@@ -8,8 +8,9 @@ Kanzlei am Saldo sieht, wie groß der offene Punkt ist.
 
 Drei Stufen:
   1. Mandanten-ISIN-Tabelle (manuelle Einträge haben immer Vorrang)
-  2. Belegmerkmale — bei Fonds vor allem der von der Bank angewandte
-     Teilfreistellungssatz, der die Kategorie eindeutig verrät
+  2. Belegmerkmale — die von der Bank vergebene Belegart zuerst (sie ist
+     verlässlicher als jede Namensheuristik), dann der Wertpapiername,
+     bei Fonds vor allem der von der Bank angewandte Teilfreistellungssatz
   3. Sonst: aktie mit Marker #KLASSE# bzw. Kategorie unbestimmt mit #TF?#
 """
 from __future__ import annotations
@@ -29,9 +30,23 @@ DERIVAT = "derivat_verbrieft"
 # Echte Optionen und Futures bildet das Tool bewusst nicht ab.
 NICHT_ABBILDBAR = "nicht_abbildbar"
 
+# Wortliste für Fonds/ETFs. Enthält sowohl volle Bezeichnungen als auch
+# gängige Kurzformen, wie Banken sie in Kontoumsätzen und komprimierten
+# Positionsnamen verwenden (z. B. "ISHS" statt "iShares" bei Flatex/
+# Sparkasse, "IWDA"-artige Kürzel lassen sich nicht generisch fassen und
+# laufen über die Anteilsklassen-Erkennung unten).
 _FONDS_WORTE = re.compile(
-    r"\b(etf|ucits|fonds?|fund|index|sicav|investmentanteil|"
-    r"lyxor|ishares|xtrackers|amundi|vanguard|spdr|invesco)\b", re.I)
+    r"\b(etf|ucits|fonds?|fund|index|sicav|investmentanteil|fondsanteil|"
+    r"lyxor|ishares|ishs|xtrackers|dbx|amundi|vanguard|vang|spdr|invesco|"
+    r"vaneck|wisdomtree|franklin|pimco|hsbc)\b", re.I)
+
+# Anteilsklassen-Suffix wie "USD-AC" (accumulating) oder "EUR-DIS"
+# (distributing). Dieses Muster kommt praktisch ausschließlich bei
+# Fondsanteilen vor und ist deshalb auch ohne Issuer-Namen ein starkes
+# Signal — genau der Fall, der z. B. "ISHS CR 500 USD-AC" ohne das Wort
+# "iShares" trotzdem korrekt als Fonds erkennt.
+_FONDS_ANTEILSKLASSE = re.compile(r"\b[A-Z]{3}-(?:AC|ACC|DIS|DIST)\b")
+
 _ANLEIHE_WORTE = re.compile(
     r"\b(anleihe|bond|obligation|schuldverschr|note|bundesobl|"
     r"floater|treasury|senior|nachrang)\b", re.I)
@@ -41,6 +56,11 @@ _DERIVAT_WORTE = re.compile(
 _NICHT_ABBILDBAR_WORTE = re.compile(
     r"\b(future|stillhalter|cfd|kontrakt|margin)\b", re.I)
 _ADR_WORTE = re.compile(r"\b(adr|american depositary|depositary receipt)\b", re.I)
+
+# Belegart, wie die Bank sie selbst benennt — verlässlicher als jeder
+# Name, weil es sich um eine Tatsachenaussage der Bank handelt, nicht um
+# eine Textheuristik. "fondsanteil" deckt den IBKR-Hinweistext ab.
+_BELEGART_FONDS = re.compile(r"investmentfonds|r[üu]cknahme|fondsanteil", re.I)
 
 # Anleihen werden in Nominal gehandelt: Kurs um 100, Bezeichnung mit
 # Kupon und Fälligkeit ("3,5% 15.02.2030").
@@ -117,7 +137,19 @@ class Klassifikator:
 
     # ── Instrumentenklasse ────────────────────────────────────────────────
     def _klasse_aus_beleg(self, nb) -> Tuple[Optional[str], bool]:
-        """Rückgabe: (klasse, sicher)."""
+        """Rückgabe: (klasse, sicher).
+
+        Reihenfolge ist bewusst gewählt: zuerst die von der Bank selbst
+        vergebene Belegart (Tatsachenaussage, kein Rateergebnis), erst
+        danach Namensheuristiken. Der DIVIDENDE-Fallback auf Aktie steht
+        ganz am Ende — eine Ausschüttung allein sagt nichts über die
+        Instrumentenklasse, sie ist nur der letzte Strohhalm, wenn sonst
+        nichts zutrifft.
+        """
+        belegart = " ".join(nb.warnings) + " " + str(getattr(nb.quelle, "typ", ""))
+        if _BELEGART_FONDS.search(belegart):
+            return FONDS, True
+
         text = f"{nb.bezeichnung} {getattr(nb.quelle, 'wertpapierbezeichnung', '')}"
 
         if _ADR_WORTE.search(text):
@@ -130,7 +162,7 @@ class Klassifikator:
             return DERIVAT, True
         if nb.teilfrei_satz is not None or nb.typ == "FONDSERTRAG":
             return FONDS, True
-        if _FONDS_WORTE.search(text):
+        if _FONDS_WORTE.search(text) or _FONDS_ANTEILSKLASSE.search(text):
             return FONDS, True
         if _ANLEIHE_WORTE.search(text) or nb.stueckzinsen:
             return ANLEIHE, True
