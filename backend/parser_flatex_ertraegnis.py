@@ -95,11 +95,6 @@ TANR_RE = re.compile(r"^(\d{9,12})/(.*)$")
 BETRAG_RE = re.compile(r"^-?[\d.]*\d,\d{2}$")
 DATUM_RE = re.compile(r"^\d{2}\.\d{2}\.\d{4}$")
 
-# Termingeschäfte i. S. § 15 Abs. 4 S. 3 EStG (Verlustverrechnungsbeschränkung)
-TERMIN_RE = re.compile(
-    r"\b(TURBO[CL]?|MINIL|FAKTL|KO\b|CALL|PUT|DISCOUNT|BONUS)\b", re.IGNORECASE
-)
-
 
 # ── Helper ──────────────────────────────────────────────────────
 def _dec(s: str) -> Optional[Decimal]:
@@ -494,7 +489,7 @@ DATEV_TEXT_MAX = 60
 # Reihenfolge = Priorität. Bei Platzmangel fallen die hinteren zuerst weg,
 # weil die vorderen auf Fehler in der Buchung selbst hinweisen, die hinteren
 # nur auf steuerliche Nacharbeit.
-MARKER_PRIO = ["#DEPOT-PRÜFEN#", "#AK-PRÜFEN#", "#TERMIN#", "#TF#", "#VORABP#"]
+MARKER_PRIO = ["#DEPOT-PRÜFEN#", "#AK-PRÜFEN#", "#VORABP#"]
 
 
 def _marker(roh: _Rohsatz, quelle: str, extra: List[str]) -> List[str]:
@@ -503,8 +498,10 @@ def _marker(roh: _Rohsatz, quelle: str, extra: List[str]) -> List[str]:
     marker = list(extra)
     if quelle in ("unbestimmt", "einzeldepot-ohne-beleg"):
         marker.append("#DEPOT-PRÜFEN#")
-    if roh.wp and TERMIN_RE.search(roh.wp):
-        marker.append("#TERMIN#")   # § 15 Abs. 4 S. 3 EStG, nicht § 8b KStG
+    # #TERMIN# entfernt: die Kontenklasse (und damit die Kontonummer)
+    # bestimmt ausschließlich klassifizierung.py, nicht dieser Marker. Der
+    # dortige Regex erkennt Flatex-Kurzformen wie "TURBOL"/"MINIL"/"FAKTL"
+    # jetzt ebenfalls, siehe Kommentar bei _DERIVAT_WORTE.
     # doppelte entfernen, nach Priorität sortieren
     eindeutig = list(dict.fromkeys(marker))
     return sorted(eindeutig,
@@ -573,8 +570,13 @@ def _verkauf(roh, depot, quelle, ta_index, typ="VERKAUF", vorabp=None) -> Beleg:
     netto_erloes = v_wert - verk_kosten
     ist_gewinn = netto_erloes >= ak_gesamt
 
-    if roh.fonds2 is not None or (roh.wp and "ETF" in roh.wp.upper()):
-        extra.append("#TF#")
+    # #TF# (ohne Prozentsatz) entfernt: klassifizierung.py setzt anhand von
+    # teilfrei_satz bereits eigenständig #TF80#/#TF60#/#TF40#/#TF0#/#TF?#.
+    # roh.fonds2 (der von der Bank angewandte TF-Satz) wird jetzt direkt auf
+    # teilfrei_satz übertragen, damit klassifizierung + booking_engine ihn
+    # lesen können — der Marker war der einzige Kanal, durch den diese
+    # Information bisher hätte weitergegeben werden sollen, wurde aber nie
+    # tatsächlich von klassifizierung.py gelesen.
 
     # #VORABP# — auf diese ISIN wurde im selben Zeitraum Vorabpauschale
     # versteuert. Mindert steuerlich den Veräußerungsgewinn (§ 17 InvStG),
@@ -610,6 +612,7 @@ def _verkauf(roh, depot, quelle, ta_index, typ="VERKAUF", vorabp=None) -> Beleg:
         roh_a_wert=roh.a_wert, roh_v_wert=roh.v_wert,
         roh_kosten=roh.kosten, roh_bruttoertrag=roh.bruttoertrag,
         ak_unvollstaendig=ak_unvollstaendig,
+        teilfrei_satz=roh.fonds2,
         storniert_von=None,
     )
     b.marker = _marker(roh, quelle, extra)
@@ -637,7 +640,11 @@ def _verkauf(roh, depot, quelle, ta_index, typ="VERKAUF", vorabp=None) -> Beleg:
 def _ertrag(roh, depot, quelle, typ) -> Beleg:
     """Dividende / Fondsausschüttung. Brutto und KESt/SolZ stehen getrennt
     im Dokument, deshalb hier vollständig buchbar."""
-    extra = ["#DIV#"] if typ == "DIVIDENDE" else ["#FONDS#"]
+    # #DIV# und #FONDS# entfernt: klassifizierung.py setzt #DIV# für
+    # typ=="DIVIDENDE" bereits selbst, und für Fondsausschüttungen kommt
+    # über typ=="FONDSERTRAG" ohnehin #TF80# o.ä. zustande.
+    # #FONDS# war laut Kontenzuordnungsdokument Fassung 3 "entfällt".
+    extra = []
     brutto = roh.bruttoertrag or Decimal("0")
     kest = roh.kest or Decimal("0")
     solz = roh.solz or Decimal("0")

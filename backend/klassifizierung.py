@@ -50,9 +50,20 @@ _FONDS_ANTEILSKLASSE = re.compile(r"\b[A-Z]{3}-(?:AC|ACC|DIS|DIST)\b")
 _ANLEIHE_WORTE = re.compile(
     r"\b(anleihe|bond|obligation|schuldverschr|note|bundesobl|"
     r"floater|treasury|senior|nachrang)\b", re.I)
+# Enthält sowohl volle Wörter (Sparkasse/comdirect/IBKR) als auch die bei
+# Flatex üblichen Kurzformen ohne Leerzeichen (TURBOL, TURBOC, MINIL, FAKTL).
+# \bturbo\b allein träfe "TURBOL" NICHT — nach "turbo" folgt dort sofort ein
+# weiterer Buchstabe, keine Wortgrenze. Das war lange unbemerkt: der Marker
+# #TERMIN# im Flatex-Parser kannte diese Kurzformen, die Kontenklasse hier
+# nicht — die Turbos liefen deshalb auf die Aktienkonten statt auf die
+# eigenen §15-Abs.4-EStG-Konten, unabhängig vom Marker-Text.
+#
+# Bewusst NICHT aufgenommen: das bare Kürzel "KO" (Knock-out). "KO" ist der
+# NYSE-Ticker von Coca-Cola; ein Treffer dort wäre eine echte Aktie mit
+# falscher Steuerbehandlung, nicht nur ein falscher Marker.
 _DERIVAT_WORTE = re.compile(
-    r"\b(turbo|faktor|optionsschein|zertifikat|discount|bonus|"
-    r"knock.?out|mini.?long|mini.?short|call|put)\b", re.I)
+    r"\b(turbo\w*|fakt(?:or\w*|l)|mini[- ]?(?:l(?:ong)?|s(?:hort)?)\b|"
+    r"optionsschein|zertifikat|discount|bonus|knock.?out|call|put)\b", re.I)
 _NICHT_ABBILDBAR_WORTE = re.compile(
     r"\b(future|stillhalter|cfd|kontrakt|margin)\b", re.I)
 _ADR_WORTE = re.compile(r"\b(adr|american depositary|depositary receipt)\b", re.I)
