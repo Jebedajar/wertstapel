@@ -65,6 +65,13 @@ class BuchungsErgebnis:
 
 
 class Buchungsengine:
+    # Schlüsselnamen für das Abgangsergebnis im Netto-Zweig, je
+    # Instrumentenklasse — siehe Kommentar in _verkauf_netto.
+    NETTO_ZWECK = {
+        "anleihe": ("abgang_gewinn", "abgang_verlust"),
+        "derivat_verbrieft": ("ertrag", "verlust"),
+    }
+
     def __init__(self, matrix: Kontenmatrix, ctx: KontenKontext,
                  texte: Dict[str, str], options: Optional[dict] = None):
         self.m = matrix
@@ -188,7 +195,16 @@ class Buchungsengine:
             k_ergebnis = self._fonds("abgang_gewinn" if gewinn else "abgang_verlust", nb)
             k_kosten = self._fonds("veraeusserungskosten", nb)
         else:
-            k_ergebnis = self.m.erfolg(nb.klasse, "abgang_gewinn" if gewinn else "abgang_verlust", c)
+            # Anleihen und verbriefte Derivate teilen sich diesen Zweig, aber
+            # nicht den Schlüsselnamen: das Kontenzuordnungsdokument nennt es
+            # bei Anleihen "Abgangsergebnis Gewinn/Verlust", bei
+            # Termingeschäften "Erträge aus/Verluste aus" (§ 15 Abs. 4 S. 3
+            # EStG) — die Kontenmatrix übernimmt genau diese Begriffe als
+            # Schlüssel. Ein einziger Name für beide wäre an der Matrix
+            # vorbeigeschrieben gewesen.
+            zw_gewinn, zw_verlust = self.NETTO_ZWECK.get(
+                nb.klasse, ("abgang_gewinn", "abgang_verlust"))
+            k_ergebnis = self.m.erfolg(nb.klasse, zw_gewinn if gewinn else zw_verlust, c)
             k_kosten = None
 
         buchungen: List[Buchung] = []
