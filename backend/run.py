@@ -325,12 +325,13 @@ def main_multi(file_paths: List[str], output_dir: str = "./out",
         if depot_overrides:
             depot_map.update(depot_overrides)
         for v in getattr(erg_jahr, "vorabpauschalen", []):
+            _vp_datum = getattr(v, "datum", None)
             vorabpauschalen.append(Vorabpauschale(
                 isin=getattr(v, "isin", ""), bezeichnung=getattr(v, "bezeichnung", ""),
-                jahr=getattr(v, "jahr", None) or date.today().year,
+                jahr=getattr(v, "jahr", None) or (_vp_datum.year if _vp_datum else date.today().year),
                 betrag=Decimal(str(getattr(v, "betrag", 0))),
                 steuer=Decimal(str(getattr(v, "steuer", 0))),
-                datum=getattr(v, "datum", None), depot=getattr(v, "depot", None)))
+                datum=_vp_datum, depot=getattr(v, "depot", None)))
     else:
         for pfad, bankname in quellen.items():
             modul = get_parser(bankname)

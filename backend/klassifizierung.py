@@ -198,10 +198,15 @@ class Klassifikator:
 
     def klassifiziere_alle(self, belege) -> None:
         """Zwei Durchläufe. Der erste sammelt alles, was eindeutig aus
-        Bankdaten hervorgeht — vor allem den Teilfreistellungssatz. Der zweite
+        Bankdaten hervorgeht — vor allem den Teilfreistellungssatz und
+        VORABPAUSCHALE_STEUER-Belege (starkes Fonds-Signal). Der zweite
         wendet das auf alle Belege derselben ISIN an, auch auf frühere Käufe,
         bei denen der Satz noch nicht bekannt war."""
         for nb in belege:
+            if nb.typ == "VORABPAUSCHALE_STEUER" and nb.isin:
+                # Vorabpauschale gibt es ausschließlich bei Investmentfonds —
+                # dieses Signal schlägt jede Namensheuristik.
+                self.tabelle.merken(nb.isin, nb.bezeichnung, FONDS, None, "vorabpauschale")
             if nb.typ in self.OHNE_KLASSE:
                 continue
             kat = self.matrix.kategorie_aus_banksatz(nb.teilfrei_satz)
@@ -252,8 +257,7 @@ class Klassifikator:
             if kat == "unbestimmt":
                 nb.warnings.append(
                     "Fondskategorie nicht ermittelbar — Buchung auf dem Konto "
-                    "'Kategorie unbestimmt'. Bei Interactive Brokers ist das der "
-                    "Normalfall, weil dort keine Teilfreistellung ausgewiesen wird.")
+                    "'Kategorie unbestimmt'. TF-Satz muss manuell nachgetragen werden.")
             self.tabelle.merken(nb.isin, nb.bezeichnung, FONDS, kat,
                                 quelle or "heuristik")
         elif nb.isin:

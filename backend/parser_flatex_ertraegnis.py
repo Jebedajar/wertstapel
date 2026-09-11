@@ -62,7 +62,7 @@ ISIN_RE = re.compile(r"^[A-Z]{2}[A-Z0-9]{9}\d$")
 # Handelsrechtlich sind Anschaffungskosten in § 255 HGB abschließend definiert
 # (Kaufpreis + Anschaffungsnebenkosten). Die Vorabpauschale ist eine
 # Steuerzahlung, keine Nebenkosten — sie darf die AK nicht erhöhen. Die
-# Gewinnminderung nach § 17 InvStG ist eine rein steuerliche Korrektur und
+# Gewinnminderung nach § 19 InvStG ist eine rein steuerliche Korrektur und
 # gehört in die Überleitungsrechnung, nicht in den laufenden Buchungsstapel.
 #
 # Gebucht wird deshalb nur der tatsächliche Steuerabfluss (1780 an Bank) aus
@@ -82,7 +82,7 @@ class Vorabpauschale:
     isin: str
     bezeichnung: str
     datum: Optional[date]
-    betrag: Decimal          # fiktiver Ertrag (mindert § 17 InvStG den VG)
+    betrag: Decimal          # fiktiver Ertrag (mindert § 19 InvStG den VG)
     kest: Decimal
     solz: Decimal
     depot: Optional[str]
@@ -579,7 +579,7 @@ def _verkauf(roh, depot, quelle, ta_index, typ="VERKAUF", vorabp=None) -> Beleg:
     # tatsächlich von klassifizierung.py gelesen.
 
     # #VORABP# — auf diese ISIN wurde im selben Zeitraum Vorabpauschale
-    # versteuert. Mindert steuerlich den Veräußerungsgewinn (§ 17 InvStG),
+    # versteuert. Mindert steuerlich den Veräußerungsgewinn (§ 19 InvStG),
     # wird aber bewusst nicht gebucht (siehe Modulkopf).
     vorabp_treffer = []
     for v in (vorabp or []):
@@ -633,7 +633,7 @@ def _verkauf(roh, depot, quelle, ta_index, typ="VERKAUF", vorabp=None) -> Beleg:
         summe = sum(v.betrag for v in vorabp_treffer)
         b.warnings.append(
             f"Vorabpauschale {summe} EUR auf diese ISIN versteuert — mindert "
-            "steuerlich den Veräußerungsgewinn (§ 17 InvStG), nicht gebucht")
+            "steuerlich den Veräußerungsgewinn (§ 19 Abs. 1 Satz 3 InvStG), nicht gebucht")
     return b
 
 

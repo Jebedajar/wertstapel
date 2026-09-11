@@ -93,7 +93,7 @@ class JahresErgebnis:
         if self.vorabpauschalen:
             z.append("")
             z.append("Vorabpauschalen — NICHT gebucht, für die "
-                     "Steuererklärung (§ 17 InvStG):")
+                     "Steuererklärung (§ 19 InvStG):")
             je_isin: Dict[str, list] = {}
             for v in self.vorabpauschalen:
                 je_isin.setdefault(v.isin, []).append(v)
