@@ -3,9 +3,10 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 const NavAccount = dynamic(() => import('@/components/NavAccount'), { ssr: false })
-import { PLANS, FAQS } from '@/lib/data'
+import { PLANS, FAQS, BROKERS } from '@/lib/data'
 
 const ConfigModal = dynamic(() => import('@/components/ConfigModal'), { ssr: false })
+const BrokerModal = dynamic(() => import('@/components/BrokerModal'), { ssr: false })
 
 /* ── Logo ── */
 const LogoMark = ({ height = 15, color = 'var(--gr)' }: { height?: number; color?: string }) => {
@@ -60,6 +61,55 @@ function UploadZone({ onFiles }: { onFiles: (fs: File[]) => void }) {
   )
 }
 
+/* ── Broker logo row ── */
+function LogoRow({ onMoreClick }: { onMoreClick: () => void }) {
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const expanded = BROKERS.find(b => b.id === expandedId) || null
+
+  return (
+    <div style={{ marginTop: 22, paddingTop: 20, borderTop: '1px solid var(--ln)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-.005em' }}>Welche Datei wird benötigt?</div>
+        <span onClick={onMoreClick} style={{ fontSize: 13, color: 'var(--gr)', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>Alle Details ansehen →</span>
+      </div>
+
+      <div style={{ border: '1.5px solid var(--ln)', borderRadius: 16, background: '#fff', overflow: 'hidden' }}>
+        <div style={{ display: 'flex' }}>
+          {BROKERS.map((b, i) => {
+            const isExpanded = expandedId === b.id
+            return (
+              <div
+                key={b.id}
+                onClick={() => setExpandedId(isExpanded ? null : b.id)}
+                style={{
+                  flex: 1, minWidth: 0, padding: '16px 8px', cursor: 'pointer', textAlign: 'center', position: 'relative',
+                  background: isExpanded ? 'var(--grs)' : '#fff',
+                  borderRight: i === BROKERS.length - 1 ? 'none' : '1px solid var(--ln)',
+                  transition: 'background .15s ease',
+                }}
+              >
+                <img src={b.logo} alt={b.name} style={{ height: 24, maxWidth: '85%', objectFit: 'contain', margin: '0 auto' }} />
+                {isExpanded && (
+                  <div style={{ position: 'absolute', bottom: -1, left: '50%', width: 12, height: 12, background: 'var(--bg)', borderLeft: '1px solid var(--ln)', borderTop: '1px solid var(--ln)', transform: 'translateX(-50%) rotate(45deg)', marginBottom: -6 }} />
+                )}
+              </div>
+            )
+          })}
+        </div>
+        {expanded && (
+          <div style={{ borderTop: '1px solid var(--ln)', background: 'var(--bg)', padding: '16px 20px' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
+              {expanded.name}
+              <span style={{ fontFamily: 'var(--font-mono),ui-monospace,monospace', fontSize: 10, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--gr)', background: 'var(--grs)', padding: '3px 8px', borderRadius: 6, marginLeft: 8 }}>{expanded.format}</span>
+            </div>
+            <div style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--mu)' }}>{expanded.desc}</div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 /* ── FAQ item ── */
 function FaqItem({ q, a }: { q: string; a: string }) {
   return (
@@ -81,9 +131,10 @@ const Chk = ({ color = 'var(--a2)' }: { color?: string }) => (
    MAIN PAGE
 ══════════════════════════════════════════════════ */
 export default function Home() {
-  const [files,       setFiles]       = useState<File[]>([])
-  const [showModal,   setShowModal]   = useState(false)
-  const [currentUser, setCurrentUser] = useState<any>(null)
+  const [files,            setFiles]            = useState<File[]>([])
+  const [showModal,        setShowModal]        = useState(false)
+  const [showBrokerModal,  setShowBrokerModal]  = useState(false)
+  const [currentUser,      setCurrentUser]      = useState<any>(null)
 
   useEffect(() => {
     fetch('/api/auth/me', { credentials: 'include' })
@@ -91,7 +142,14 @@ export default function Home() {
       .then(setCurrentUser)
       .catch(() => null)
   }, [])
-  
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('guide') === '1') {
+      setShowBrokerModal(true)
+      window.history.replaceState(null, '', window.location.pathname)
+    }
+  }, [])
+
   const [navOpen,   setNavOpen]   = useState(false)
 
   const handleFiles = useCallback((fs: File[]) => { setFiles(fs); setShowModal(true) }, [])
@@ -108,7 +166,7 @@ export default function Home() {
               <a key={t} href={h} className="nav-link" onClick={() => setNavOpen(false)}>{t}</a>
             ))}
             <NavAccount onScrollToUpload={scrollUp} />
-            <button onClick={scrollUp} style={{ padding: '10px 18px', borderRadius: 999, background: 'var(--ink)', color: '#fff', border: 'none', fontSize: 13, fontWeight: 600, letterSpacing: '-.005em', display: 'inline-flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap' }}>
+            <button onClick={() => setShowBrokerModal(true)} style={{ padding: '10px 18px', borderRadius: 999, background: 'var(--ink)', color: '#fff', border: 'none', fontSize: 13, fontWeight: 600, letterSpacing: '-.005em', display: 'inline-flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap' }}>
               Jetzt starten
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
             </button>
@@ -131,6 +189,7 @@ export default function Home() {
           </p>
           <div id="hero-upload" className="fu2" style={{ width: '100%', maxWidth: 720 }}>
             <UploadZone onFiles={handleFiles} />
+            <LogoRow onMoreClick={() => setShowBrokerModal(true)} />
             <div style={{ display: 'flex', gap: 20, marginTop: 22, flexWrap: 'wrap', justifyContent: 'center' }}>
               {['§8b-konform', 'Server in Deutschland', 'DSGVO-konform', 'Made in Germany'].map(t => (
                 <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
@@ -366,6 +425,12 @@ export default function Home() {
       </footer>
 
       {showModal && <ConfigModal files={files} onClose={() => setShowModal(false)} user={currentUser} />}
+      {showBrokerModal && (
+        <BrokerModal
+          onClose={() => setShowBrokerModal(false)}
+          onFilesSelected={fs => { setShowBrokerModal(false); handleFiles(fs) }}
+        />
+      )}
     </>
   )
 }

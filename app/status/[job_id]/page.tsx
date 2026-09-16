@@ -45,9 +45,9 @@ export default function StatusPage() {
   }, [job_id])
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-gray-50 to-brand-50 flex items-center justify-center px-4">
-      <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-10 max-w-lg w-full text-center">
-        <a href="/" className="text-brand-600 text-sm hover:underline mb-6 block">← Zurück</a>
+    <main className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--bg)' }}>
+      <div className="rounded-2xl shadow-xl p-10 max-w-lg w-full text-center" style={{ background: '#fff', border: '1px solid var(--ln)' }}>
+        <a href="/" className="text-sm hover:underline mb-6 block" style={{ color: 'var(--gr)' }}>← Zurück</a>
 
         {status === 'loading' && <p>Lade Status…</p>}
 
@@ -62,11 +62,14 @@ export default function StatusPage() {
                   key={f}
                   href={`/api/download/${job_id}/${f}`}
                   download
-                  className="flex items-center gap-3 bg-brand-50 border border-brand-200 rounded-xl px-4 py-3 hover:bg-brand-100 transition-colors text-left"
+                  className="flex items-center gap-3 rounded-xl px-4 py-3 transition-colors text-left"
+                  style={{ background: 'var(--grs)', border: '1px solid var(--a2)' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#dceafc' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'var(--grs)' }}
                 >
                   <span className="text-xl shrink-0">{fileIcon(f)}</span>
-                  <span className="font-mono text-xs text-brand-800 truncate flex-1">{f}</span>
-                  <span className="text-brand-600 shrink-0 text-sm">⬇</span>
+                  <span className="font-mono text-xs truncate flex-1" style={{ color: 'var(--ink2)' }}>{f}</span>
+                  <span className="shrink-0 text-sm" style={{ color: 'var(--gr)' }}>⬇</span>
                 </a>
               ))}
               <p className="text-xs text-gray-400 mt-4">Download-Links sind 24 Stunden gültig.</p>
@@ -79,7 +82,7 @@ export default function StatusPage() {
             <div className="text-5xl mb-4">⚙️</div>
             <h1 className="text-2xl font-bold mb-2">Wird verarbeitet…</h1>
             <div className="flex items-center justify-center gap-2 text-sm text-gray-500 mt-4">
-              <div className="w-4 h-4 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+              <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--gr)', borderTopColor: 'transparent' }} />
               Seite aktualisiert automatisch
             </div>
           </>
@@ -104,7 +107,14 @@ export default function StatusPage() {
             ) : (
               <p className="text-gray-600 mb-4">Bei der Verarbeitung ist ein Fehler aufgetreten.</p>
             )}
-            <a href="/" className="inline-block bg-brand-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-brand-700">
+            <a
+              href="/?guide=1"
+              className="block w-full rounded-xl font-semibold mb-3 py-3 px-6"
+              style={{ border: '1.5px solid var(--ln2)', color: 'var(--ink)', background: '#fff' }}
+            >
+              Unterstützte Broker anzeigen
+            </a>
+            <a href="/" className="inline-block px-6 py-3 rounded-xl font-semibold" style={{ background: 'var(--ink)', color: '#fff' }}>
               Nochmal versuchen
             </a>
           </>

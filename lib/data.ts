@@ -1,3 +1,14 @@
+export const BROKERS = [
+  { id: 'ibkr', name: 'IBKR', logo: '/logos/ibkr.svg', format: 'CSV',
+    desc: 'Reports & Statements → Statements → Activity Statement. Format: CSV, Sprache: English. Folgende Sections aktivieren: Trades, Dividends, Withholding Tax, Fees, Interest, Corporate Actions, Financial Instrument Information.' },
+  { id: 'sparkasse', name: 'Sparkasse', logo: '/logos/sparkasse.svg', format: 'PDF',
+    desc: 'Nachrichten → Postfach → Filter „Wertpapierdokumente" setzen (Datum & Depotinhaber angeben) → alle PDFs herunterladen. Alternativ: aggregierte PDF vom Bankberater anfordern.' },
+  { id: 'comdirect', name: 'Comdirect', logo: '/logos/comdirect.svg', format: 'XLSX',
+    desc: 'Depot → Abrechnungsdatum → Zeitraum wählen → Export als Excel-Datei (.xlsx) herunterladen.' },
+  { id: 'flatex', name: 'Flatex', logo: '/logos/flatex.svg', format: 'PDF + CSV',
+    desc: '2 Dateien nötig: 1) Post → Dokumentenarchiv → Filter „Erträgnisaufstellung" → PDF herunterladen. 2) Konto & Depot → Kontoumsätze → Zeitraum wählen → als CSV exportieren (bei mehreren Unterdepots: jede Kontoumsätze-CSV einzeln herunterladen und alle hochladen).' },
+]
+
 export const PLANS = [
   { id: 'single', label: 'Einzelexport',  price: '200',   sub: 'pro Export',          perExport: '200 € pro Export',      note: 'Für den ersten Test',                popular: false },
   { id: 'five',   label: '5er-Paket',     price: '750',   sub: '= 150 € pro Export',  perExport: '150 € pro Export',      note: 'Beliebtester Einstieg',              popular: true  },
@@ -11,9 +22,9 @@ export const FAQS = [
   { q: 'Was passiert mit den Daten?',
     a: 'Die Verarbeitung erfolgt ausschließlich auf EU-Servern in Deutschland. Das PDF und die Ergebnisdateien werden nach Auslieferung automatisch gelöscht. Kein KI-Sprachmodell und kein Drittanbieter arbeitet mit den Daten.' },
   { q: 'Mit welchen Banken funktioniert das?',
-    a: 'Derzeit funktioniert Wertstapel mit Dokumenten aller Sparkassen, Comdirect und Flatex. Weitere Banken befinden sich in Entwicklung bzw. können auf Wunsch eingebunden werden. Reichen Sie ein anonymisiertes Muster-PDF ein – wir prüfen die Kompatibilität kostenfrei: muster@wertstapel.de' },
+    a: 'Derzeit funktioniert Wertstapel mit Dokumenten von Interactive Brokers, allen Sparkassen, Comdirect und flatexDEGIRO. Weitere Banken befinden sich in Entwicklung bzw. können auf Wunsch eingebunden werden. Reichen Sie ein anonymisiertes Muster-PDF ein – wir prüfen die Kompatibilität kostenfrei: muster@wertstapel.de' },
   { q: 'Welche Dokumente muss ich hochladen?',
-    a: 'Hier findest Du die relevanten Dokumente bei Deiner Bank / Deinem Broker:\n– Interactive Brokers: Reports & Statements > Statements > Activity Statement. Ganzes Jahr und mit Details (“with Securities and Futures Breakdown”) auswählen. Als CSV herunterladen.\n– Sparkassen: Nachrichten > Postfach > Filter „Wertpapierdokumente”, Datum und Depotinhaber setzen > alle PDFs herunterladen. Alternativ kann Ihr Bankberater eine aggregierte PDF mit allen Transaktionen zur Verfügung stellen.\n– Comdirect: Depot > Abrechnungsdatum > Zeitraum auswählen > unten „CSV exportieren”\n– Flatex: 2 Dateien werden benötigt: 1) Post > Dokumentenarchiv bzw. Postfach > Filter „Erträgnisaufstellung” wählen. PDF herunterladen 2) Konto & Depot > Kontoumsätze. Dort Zeitraum wählen und als CSV herunterladen.' },
+    a: 'Hier findest Du die relevanten Dokumente bei Deiner Bank / Deinem Broker:\n– Interactive Brokers: Reports & Statements > Statements > Activity Statement. Format CSV, Sprache English. Folgende Sections aktivieren: Trades, Dividends, Withholding Tax, Fees, Interest, Corporate Actions, Financial Instrument Information.\n– Sparkassen: Nachrichten > Postfach > Filter „Wertpapierdokumente”, Datum und Depotinhaber setzen > alle PDFs herunterladen. Alternativ kann Ihr Bankberater eine aggregierte PDF mit allen Transaktionen zur Verfügung stellen.\n– Comdirect: Depot > Abrechnungsdatum > Zeitraum auswählen > Export als Excel-Datei (.xlsx) herunterladen\n– flatexDEGIRO: 2 Dateien werden benötigt: 1) Post > Dokumentenarchiv bzw. Postfach > Filter „Erträgnisaufstellung” wählen. PDF herunterladen 2) Konto & Depot > Kontoumsätze. Dort Zeitraum wählen und als CSV herunterladen (bei mehreren Unterdepots: jede Kontoumsätze-CSV einzeln herunterladen und alle hochladen).' },
   { q: 'Was wenn ein Beleg nicht erkannt wird?',
     a: 'Nicht erkannte Seiten erscheinen mit Typ-Bezeichnung und Grund im Verarbeitungsprotokoll. Es gibt somit keine „stillen Fehler”. Was nicht automatisch buchbar ist, bleibt manuell buchbar — so wie bisher.' },
   { q: 'Welche Einstellungen kann ich vornehmen?',
