@@ -37,16 +37,14 @@ const SH = ({ kicker, title, sub, dark = false }: { kicker?: string; title: Reac
 )
 
 /* ── Upload zone ── */
-function UploadZone({ onFiles }: { onFiles: (fs: File[]) => void }) {
+function UploadZone({ onFiles, onZoneClick }: { onFiles: (fs: File[]) => void; onZoneClick: () => void }) {
   const [drag, setDrag] = useState(false)
-  const ref = useRef<HTMLInputElement>(null)
   return (
     <div className={`upload-zone${drag ? ' drag' : ''}`}
-      onClick={() => ref.current?.click()}
+      onClick={onZoneClick}
       onDragOver={e => { e.preventDefault(); setDrag(true) }}
       onDragLeave={() => setDrag(false)}
       onDrop={e => { e.preventDefault(); setDrag(false); const fs = Array.from(e.dataTransfer.files).filter(f => /\.(pdf|xlsx|xls|csv)$/i.test(f.name)); if (fs.length) onFiles(fs) }}>
-      <input ref={ref} type="file" accept=".pdf,.xlsx,.xls,.csv" multiple style={{ display: 'none' }} onChange={e => { const fs = Array.from(e.target.files || []).filter(f => /\.(pdf|xlsx|xls|csv)$/i.test(f.name)); if (fs.length) onFiles(fs) }} />
       <div className="upload-inner">
         <div style={{ width: 72, height: 72, borderRadius: 18, background: 'var(--gr)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5" /><path d="M5 12l7-7 7 7" /></svg>
@@ -62,9 +60,17 @@ function UploadZone({ onFiles }: { onFiles: (fs: File[]) => void }) {
 }
 
 /* ── Broker logo row ── */
-function LogoRow({ onMoreClick }: { onMoreClick: () => void }) {
+function LogoRow({ onMoreClick, onFiles }: { onMoreClick: () => void; onFiles: (fs: File[]) => void }) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const expanded = BROKERS.find(b => b.id === expandedId) || null
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const openPicker = () => inputRef.current?.click()
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const fs = Array.from(e.target.files || []).filter(f => /\.(pdf|xlsx|xls|csv)$/i.test(f.name))
+    e.target.value = ''
+    if (fs.length) onFiles(fs)
+  }
 
   return (
     <div style={{ marginTop: 22, paddingTop: 20, borderTop: '1px solid var(--ln)' }}>
@@ -102,10 +108,15 @@ function LogoRow({ onMoreClick }: { onMoreClick: () => void }) {
               {expanded.name}
               <span style={{ fontFamily: 'var(--font-mono),ui-monospace,monospace', fontSize: 10, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--gr)', background: 'var(--grs)', padding: '3px 8px', borderRadius: 6, marginLeft: 8 }}>{expanded.format}</span>
             </div>
-            <div style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--mu)' }}>{expanded.desc}</div>
+            <div style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--mu)', marginBottom: 14 }}>{expanded.desc}</div>
+            <button onClick={openPicker} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: 8, border: 'none', background: 'var(--gr)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5" /><path d="M5 12l7-7 7 7" /></svg>
+              Hochladen
+            </button>
           </div>
         )}
       </div>
+      <input ref={inputRef} type="file" accept=".pdf,.xlsx,.xls,.csv" multiple style={{ display: 'none' }} onChange={handleChange} />
     </div>
   )
 }
@@ -188,8 +199,8 @@ export default function Home() {
             Schluss mit dem manuellen Buchen von Wertpapier-Transaktionen: Sie laden das PDF oder die CSV/XLS ihrer Depot-Bank hoch, wir liefern in 5 Minuten den DATEV-Stapel — fertig zum Import und mit Plausibilitätscheck. Keine Transaktionsbegrenzung. Kein Abo.
           </p>
           <div id="hero-upload" className="fu2" style={{ width: '100%', maxWidth: 720 }}>
-            <UploadZone onFiles={handleFiles} />
-            <LogoRow onMoreClick={() => setShowBrokerModal(true)} />
+            <UploadZone onFiles={handleFiles} onZoneClick={() => setShowBrokerModal(true)} />
+            <LogoRow onMoreClick={() => setShowBrokerModal(true)} onFiles={handleFiles} />
             <div style={{ display: 'flex', gap: 20, marginTop: 22, flexWrap: 'wrap', justifyContent: 'center' }}>
               {['§8b-konform', 'Server in Deutschland', 'DSGVO-konform', 'Made in Germany'].map(t => (
                 <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
