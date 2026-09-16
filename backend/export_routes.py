@@ -2,9 +2,10 @@
 export_routes.py — Direkter Export-Start für eingeloggte Nutzer mit Guthaben.
 """
 
-import os, sqlite3, uuid
+import os, sqlite3, uuid, json
 from datetime import date, datetime
 from pathlib import Path
+from typing import List
 from fastapi import APIRouter, Request, HTTPException, UploadFile, File, Form, BackgroundTasks
 
 from auth import get_session_user
@@ -24,11 +25,13 @@ def get_db():
 @router.post("/api/export/start")
 async def export_start(
     background_tasks: BackgroundTasks,
-    request:  Request,
-    file:     UploadFile = File(...),
-    skr:      str = Form("SKR04"),
-    bank:     str = Form("1801"),
-    mandant:  str = Form(""),
+    request:       Request,
+    files:         List[UploadFile] = File(...),
+    skr:           str = Form("SKR04"),
+    bank:          str = Form("1801"),
+    vermoegensart: str = Form("UV"),
+    bewertung:     str = Form("fifo"),
+    mandant:       str = Form(""),
 ):
     """
     Startet einen Export direkt aus dem Guthaben — ohne Stripe.
@@ -53,18 +56,25 @@ async def export_start(
             detail="Kein Guthaben. Bitte ein Paket erwerben."
         )
 
+    if not files:
+        raise HTTPException(400, "Mindestens eine Datei erforderlich")
+
     allowed_ext = {".pdf", ".xlsx", ".xls", ".csv"}
-    file_ext = Path(file.filename or "").suffix.lower()
-    if not file_ext or file_ext not in allowed_ext:
-        raise HTTPException(400, "Nur PDF-, XLSX-, XLS- oder CSV-Dateien erlaubt")
+    job_id = str(uuid.uuid4())
+    saved_paths: list[str] = []
 
-    content = await file.read()
-    if len(content) > 100 * 1024 * 1024:
-        raise HTTPException(400, "Datei zu groß (max. 100 MB)")
+    for idx, upload in enumerate(files):
+        file_ext = Path(upload.filename or "").suffix.lower()
+        if not file_ext or file_ext not in allowed_ext:
+            raise HTTPException(400, f"Nur PDF-, XLSX-, XLS- oder CSV-Dateien erlaubt: {upload.filename}")
+        content = await upload.read()
+        if len(content) > 100 * 1024 * 1024:
+            raise HTTPException(400, f"Datei zu groß (max. 100 MB): {upload.filename}")
+        dest = UPLOAD_DIR / f"{job_id}_{idx}{file_ext}"
+        dest.write_bytes(content)
+        saved_paths.append(str(dest))
 
-    job_id   = str(uuid.uuid4())
-    pdf_path = UPLOAD_DIR / f"{job_id}{file_ext}"
-    pdf_path.write_bytes(content)
+    pdf_path_json = json.dumps(saved_paths)
 
     with get_db() as db:
         if not flat_valid:
@@ -75,15 +85,18 @@ async def export_start(
 
         db.execute(
             """INSERT INTO jobs
-               (id, user_email, plan_id, status, pdf_path, skr, bank, mandant, created_at)
-               VALUES (?, ?, ?, 'paid', ?, ?, ?, ?, ?)""",
+               (id, user_email, plan_id, status, pdf_path, skr, bank, vermoegensart, bewertung,
+                mandant, created_at)
+               VALUES (?, ?, ?, 'paid', ?, ?, ?, ?, ?, ?, ?)""",
             (
                 job_id,
                 email,
                 "flat" if flat_valid else "credits",
-                str(pdf_path),
+                pdf_path_json,
                 skr,
                 bank,
+                vermoegensart,
+                bewertung,
                 mandant,
                 datetime.utcnow().isoformat(),
             )
@@ -111,4 +124,7 @@ async def export_status(job_id: str, request: Request):
     if not row:
         raise HTTPException(status_code=404, detail="Job nicht gefunden")
 
-    return {"job_id": job_id, "status": row["status"], "output_dir": row["output_dir"]}
+    result: dict = {"job_id": job_id, "status": row["status"]}
+    if row["status"] == "error" and row["output_dir"] and row["output_dir"].startswith("ERR:"):
+        result["error_message"] = row["output_dir"][4:]
+    return result

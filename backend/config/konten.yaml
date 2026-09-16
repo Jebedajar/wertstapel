@@ -143,9 +143,10 @@ SKR03:
 
   AV:
     bestand:
-      aktie:   { konto: 530, status: standard }   # 0530
-      fonds:   { konto: 525, status: standard }   # 0525
-      anleihe: { konto: 535, status: standard }   # 0535
+      aktie:             { konto: 530, status: standard }   # 0530
+      fonds:             { konto: 525, status: standard }   # 0525
+      anleihe:           { konto: 535, status: standard }   # 0535
+      derivat_verbrieft: { konto: 536, status: anzulegen }  # 0536
     aktie:
       dividende:        { konto: 2625, status: standard }
       erloes_gewinn:    { konto: 8839, status: standard }
@@ -159,9 +160,19 @@ SKR03:
       abgang_gewinn:  { konto: 8838, status: standard }
       abgang_verlust: { konto: 8818, status: standard }
     fonds:
+      methode: netto
       ausschuettung:  { konto: 2626, status: anzulegen }
       abgang_gewinn:  { konto: 8840, status: anzulegen }
       abgang_verlust: { konto: 2314, status: anzulegen }
+      veraeusserungskosten:    { konto: 2334, status: anzulegen }
+      vorabpauschale_ertrag:   { konto: 2717, status: anzulegen }
+      ausgleichsposten_aktiv:  { konto: 981,  status: anzulegen }   # 0981
+      ausgleichsposten_aufloesung_verlust: { konto: 2335, status: anzulegen }
+      ausgleichsposten_aufloesung_ertrag:  { konto: 2718, status: anzulegen }
+    derivat_verbrieft:
+      methode: netto
+      ertrag:  { konto: 2719, status: anzulegen }
+      verlust: { konto: 2336, status: anzulegen }
 
   gemeinsam:
     kapest:                     { konto: 2213, status: standard }
@@ -241,9 +252,10 @@ SKR04:
 
   AV:
     bestand:
-      aktie:   { konto: 910, status: standard }   # 0910
-      fonds:   { konto: 900, status: standard }   # 0900
-      anleihe: { konto: 920, status: standard }   # 0920
+      aktie:             { konto: 910, status: standard }   # 0910
+      fonds:             { konto: 900, status: standard }   # 0900
+      anleihe:           { konto: 920, status: standard }   # 0920
+      derivat_verbrieft: { konto: 930, status: anzulegen }  # 0930
     aktie:
       dividende:        { konto: 7014, status: standard }
       erloes_gewinn:    { konto: 4852, status: standard }
@@ -257,9 +269,19 @@ SKR04:
       abgang_gewinn:  { konto: 4851, status: standard }
       abgang_verlust: { konto: 6891, status: standard }
     fonds:
+      methode: netto
       ausschuettung:  { konto: 7015, status: anzulegen }
       abgang_gewinn:  { konto: 4853, status: anzulegen }
       abgang_verlust: { konto: 6893, status: anzulegen }
+      veraeusserungskosten:    { konto: 6955, status: anzulegen }
+      vorabpauschale_ertrag:   { konto: 7126, status: anzulegen }
+      ausgleichsposten_aktiv:  { konto: 1901, status: anzulegen }
+      ausgleichsposten_aufloesung_verlust: { konto: 6956, status: anzulegen }
+      ausgleichsposten_aufloesung_ertrag:  { konto: 4955, status: anzulegen }
+    derivat_verbrieft:
+      methode: netto
+      ertrag:  { konto: 4956, status: anzulegen }
+      verlust: { konto: 6957, status: anzulegen }
 
   gemeinsam:
     kapest:                     { konto: 7630, status: standard }

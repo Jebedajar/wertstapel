@@ -84,6 +84,7 @@ RE_KURSWERT     = re.compile(r"Kurswert\s+([\d.,]+)-?\s*EUR")
 RE_PROVISION    = re.compile(r"Provision[^\n]*?([\d.,]+)-\s*EUR")
 RE_ABWICKLUNG   = re.compile(r"Abwicklungskosten\s+(?:Börse\s+)?([\d.,]+)-\s*EUR")
 RE_TRANSAKTION  = re.compile(r"Transaktionsentgelt\s+(?:Börse\s+)?([\d.,]+)-\s*EUR")
+RE_HANDELSENTGELT = re.compile(r"Handelsentgelt\s+([\d.,]+)-?\s*EUR")
 RE_FREMDE       = re.compile(r"Fremde Auslagen\s+([\d.,]+)-?\s*EUR")
 RE_LIEFERGEBUEHR= re.compile(r"Übertragungs-/Liefergebühr\s+([\d.,]+)-?\s*EUR")
 RE_AUSMACHEND   = re.compile(r"Ausmachender Betrag\s+([\d.,]+)[-+]?\s*EUR")
@@ -170,6 +171,7 @@ def _extract_beleg(text_flat: str, seite_nr: int, typ: Literal["KAUF", "VERKAUF"
         ("Provision", RE_PROVISION),
         ("Abwicklungskosten", RE_ABWICKLUNG),
         ("Transaktionsentgelt", RE_TRANSAKTION),
+        ("Handelsentgelt", RE_HANDELSENTGELT),
         ("Fremde Auslagen", RE_FREMDE),
         ("Übertragungs-/Liefergebühr", RE_LIEFERGEBUEHR),
     ]:

@@ -5,10 +5,23 @@ import { useParams } from 'next/navigation'
 
 type Status = 'awaiting_payment' | 'paid' | 'processing' | 'done' | 'error' | 'loading'
 
+function fileIcon(name: string): string {
+  const lower = name.toLowerCase()
+  if (lower.includes('protokoll'))                                      return '📋'
+  if (lower.includes('buchungsstapel') && lower.includes('steuer'))    return '⚖️'
+  if (lower.includes('buchungsstapel'))                                 return '📊'
+  if (lower.includes('kontenblatt'))                                    return '📄'
+  if (lower.includes('vorabpauschalen'))                                return '💰'
+  if (lower.includes('isin'))                                           return '🔖'
+  if (lower.includes('plausi'))                                         return '🔍'
+  return '📁'
+}
+
 export default function StatusPage() {
   const { job_id } = useParams<{ job_id: string }>()
-  const [status, setStatus] = useState<Status>('loading')
-  const [files, setFiles] = useState<string[]>([])
+  const [status, setStatus]             = useState<Status>('loading')
+  const [files, setFiles]               = useState<string[]>([])
+  const [errorMessage, setErrorMessage] = useState('')
 
   useEffect(() => {
     if (!job_id) return
@@ -18,7 +31,8 @@ export default function StatusPage() {
         const res = await fetch(`/api/status/${job_id}`)
         const data = await res.json()
         setStatus(data.status)
-        if (data.files) setFiles(data.files)
+        if (data.files)         setFiles(data.files)
+        if (data.error_message) setErrorMessage(data.error_message)
         if (data.status !== 'done' && data.status !== 'error') {
           setTimeout(poll, 3000)
         }
@@ -42,16 +56,17 @@ export default function StatusPage() {
             <div className="text-5xl mb-4">🎉</div>
             <h1 className="text-2xl font-bold mb-2">Fertig!</h1>
             <p className="text-gray-600 mb-6">Deine Dateien sind bereit.</p>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {files.map((f) => (
                 <a
                   key={f}
                   href={`/api/download/${job_id}/${f}`}
                   download
-                  className="flex items-center justify-between bg-brand-50 border border-brand-200 rounded-xl px-5 py-4 hover:bg-brand-100 transition-colors"
+                  className="flex items-center gap-3 bg-brand-50 border border-brand-200 rounded-xl px-4 py-3 hover:bg-brand-100 transition-colors text-left"
                 >
-                  <span className="font-mono text-sm text-brand-800 truncate">{f}</span>
-                  <span className="text-brand-600 ml-3 shrink-0">⬇ Download</span>
+                  <span className="text-xl shrink-0">{fileIcon(f)}</span>
+                  <span className="font-mono text-xs text-brand-800 truncate flex-1">{f}</span>
+                  <span className="text-brand-600 shrink-0 text-sm">⬇</span>
                 </a>
               ))}
               <p className="text-xs text-gray-400 mt-4">Download-Links sind 24 Stunden gültig.</p>
@@ -82,7 +97,13 @@ export default function StatusPage() {
           <>
             <div className="text-5xl mb-4">❌</div>
             <h1 className="text-2xl font-bold mb-2">Fehler</h1>
-            <p className="text-gray-600 mb-4">Bei der Verarbeitung ist ein Fehler aufgetreten.</p>
+            {errorMessage ? (
+              <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-3 mb-4 text-left">
+                {errorMessage}
+              </p>
+            ) : (
+              <p className="text-gray-600 mb-4">Bei der Verarbeitung ist ein Fehler aufgetreten.</p>
+            )}
             <a href="/" className="inline-block bg-brand-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-brand-700">
               Nochmal versuchen
             </a>

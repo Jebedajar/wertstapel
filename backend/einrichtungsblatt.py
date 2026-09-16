@@ -101,16 +101,29 @@ UEBERSICHT = [
 
 
 def _uebersicht_zeilen(matrix: Kontenmatrix, ctx: KontenKontext,
-                       klassen: List[str]) -> List[tuple]:
+                       klassen: List[str], depots: int = 1) -> List[tuple]:
     zeilen = []
     for label, zweck, arg in UEBERSICHT:
         try:
             if zweck == "bank":
-                nr = matrix.bank(ctx)
+                # Ein Eintrag je Depot, damit alle Verrechnungskonten gelistet sind.
+                for di in range(1, depots + 1):
+                    c = KontenKontext(ctx.kontenrahmen, ctx.vermoegensart,
+                                      di, ctx.sachkontenlaenge)
+                    nr = matrix.bank(c)
+                    dep_label = label if depots == 1 else f"{label} (Depot {di})"
+                    zeilen.append((nr, dep_label))
+                continue
             elif zweck == "bestand":
                 if arg not in klassen:
                     continue
-                nr = matrix.bestand(arg, ctx)
+                for di in range(1, depots + 1):
+                    c = KontenKontext(ctx.kontenrahmen, ctx.vermoegensart,
+                                      di, ctx.sachkontenlaenge)
+                    nr = matrix.bestand(arg, c)
+                    dep_label = label if depots == 1 else f"{label} (Depot {di})"
+                    zeilen.append((nr, dep_label))
+                continue
             elif zweck == "gemeinsam":
                 nr = matrix.gemeinsam(arg, ctx)
             else:
@@ -172,7 +185,7 @@ def schreibe_csv(pfad: Path, matrix: Kontenmatrix, ctx: KontenKontext,
             w.writerow([k.nummer, k.bezeichnung])
         w.writerow([])
         w.writerow(["Verwendetes Standardkonto", "Sachverhalt"])
-        for nr, label in _uebersicht_zeilen(matrix, ctx, klassen):
+        for nr, label in _uebersicht_zeilen(matrix, ctx, klassen, depots):
             w.writerow([nr, label])
     return len(konten)
 
@@ -259,7 +272,7 @@ def schreibe_pdf(pfad: Path, matrix: Kontenmatrix, ctx: KontenKontext,
         "Diese Konten sind im Kontenrahmen belegt und müssen nicht angelegt "
         "werden. Die Übersicht zeigt, welcher Sachverhalt auf welchem Konto "
         "landet.", body))
-    zeilen = _uebersicht_zeilen(matrix, ctx, klassen)
+    zeilen = _uebersicht_zeilen(matrix, ctx, klassen, depots)
     daten = [["Konto", "Sachverhalt"]] + [
         [nr, Paragraph(label, klein)] for nr, label in zeilen]
     f.append(tabelle(daten, [22 * mm, 148 * mm]))

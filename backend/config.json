@@ -1,113 +1,74 @@
 {
-  "_comment": "Wertstapel — Konfiguration mit SKR03 und SKR04 Presets",
+  "_comment": "Wertstapel — Konfiguration Fassung 3. Kontonummern stehen NICHT mehr hier, sondern ausschliesslich in config/konten.yaml. Diese Datei enthaelt nur noch Kopfdaten, Textvorlagen und Optionen.",
+
   "datev_header": {
     "berater_nr": "",
     "mandant_nr": "",
     "diktatkuerzel": "XX",
-    "wj_beginn": ""
+    "wj_beginn": "",
+    "sachkontenlaenge": 4,
+    "buchungstyp": 1,
+    "festschreibung": 0,
+    "waehrung": "EUR",
+    "exportiert_von": "wertstapel",
+    "stapel_bezeichnung_template": "WP-Stapel {datum_von}-{datum_bis}",
+
+    "_rechnungslegungszweck": "Feld 20 der DTVF-Kopfzeile. 0 = rechnungslegungszweckunabhaengig, 50 = Handelsrecht, 30 = Steuerrecht. Quelle: DATEV-Exportanleitungen AGENDA und Schleupen CS:Plus, jeweils Abschnitt Finanzbuchfuehrung. Der Hauptstapel bleibt auf 0, weil alle bisher ausgelieferten Exporte diesen Wert hatten.",
+    "rechnungslegungszweck": 0,
+    "rechnungslegungszweck_steuerrecht": 30
   },
-  "presets": {
-    "SKR04": {
-      "_comment": "Standardkontenrahmen 04 — DATEV Dok. 5300857",
-      "sachkontenrahmen": "04",
-      "bank": {
-        "nr": "1801",
-        "name": "Bank"
-      },
-      "wertpapiere_uv": {
-        "nr": "1510",
-        "name": "Sonstige Wertpapiere UV"
-      },
-      "erloese_gewinn": {
-        "nr": "4906",
-        "name": "Ertraege Abgang UV §8b Abs.2"
-      },
-      "verluste_erloes": {
-        "nr": "6906",
-        "name": "Verluste Abgang UV §8b Abs.3"
-      },
-      "abgang_gewinn": {
-        "nr": "4904",
-        "name": "Abgang Buchwert §8b Abs.2 Buchgewinn"
-      },
-      "abgang_verlust": {
-        "nr": "6904",
-        "name": "Abgang Buchwert §8b Abs.3 Buchverlust"
-      },
-      "gebuehren_vk_gewinn": {
-        "nr": "6857",
-        "name": "Veraeu.kosten §8b Abs.2"
-      },
-      "gebuehren_vk_verlust": {
-        "nr": "6858",
-        "name": "Veraeu.kosten §8b Abs.3"
-      },
-      "dividende_ertraege": {
-        "nr": "2750",
-        "name": "Dividenden und aehnliche Ertraege"
-      },
-      "fondsertrag_ertraege": {
-        "nr": "2750",
-        "name": "Ertraege aus Investmentfonds"
+
+  "mandant_vorgaben": {
+    "_comment": "Werden je Mandant gespeichert, nicht pro Export gewaehlt.",
+    "kontenrahmen": "SKR04",
+    "vermoegensart": "UV",
+    "bewertung": "gleitender_durchschnitt",
+    "depots": [
+      {
+        "nr": 1,
+        "bezeichnung": "Hauptdepot",
+        "kennung": ""
       }
-    },
-    "SKR03": {
-      "_comment": "Standardkontenrahmen 03 — DATEV Dok. 5300857",
-      "sachkontenrahmen": "03",
-      "bank": {
-        "nr": "1200",
-        "name": "Bank"
-      },
-      "wertpapiere_uv": {
-        "nr": "1349",
-        "name": "Wertpapieranlagen kurzfr. Finanzdisposition"
-      },
-      "erloese_gewinn": {
-        "nr": "2726",
-        "name": "Ertraege Abgang UV §8b Abs.2"
-      },
-      "verluste_erloes": {
-        "nr": "2326",
-        "name": "Verluste Abgang UV §8b Abs.3"
-      },
-      "abgang_gewinn": {
-        "nr": "2724",
-        "name": "Abgang Buchwert §8b Abs.2 Buchgewinn"
-      },
-      "abgang_verlust": {
-        "nr": "2324",
-        "name": "Abgang Buchwert §8b Abs.3 Buchverlust"
-      },
-      "gebuehren_vk_gewinn": {
-        "nr": "4976",
-        "name": "Veraeu.kosten §8b Abs.2"
-      },
-      "gebuehren_vk_verlust": {
-        "nr": "4977",
-        "name": "Veraeu.kosten §8b Abs.3"
-      },
-      "dividende_ertraege": {
-        "nr": "1740",
-        "name": "Dividenden und aehnliche Ertraege"
-      },
-      "fondsertrag_ertraege": {
-        "nr": "1740",
-        "name": "Ertraege aus Investmentfonds"
-      }
-    }
+    ]
   },
+
   "buchungstexte": {
-    "kauf": "{teilfrei}Kauf {anzahl} {bezeichnung} ({isin})",
-    "verkauf_erloes": "{teilfrei}Verkauf {anzahl} {bezeichnung} ({isin})",
-    "verkauf_gebuehren": "{teilfrei}Gebuehren Verkauf {isin} (Auftrag {auftragsnr})",
-    "verkauf_abgang": "{teilfrei}Abgang Buchwert {isin} (Auftrag {auftragsnr})",
-    "dividende": "#DIV# Dividende {anzahl} {bezeichnung} | ISIN {isin}",
-    "fondsertrag": "#FONDS#{teilfrei}Fondsertrag {anzahl} {bezeichnung} | ISIN {isin}"
+    "_comment": "{marker} enthaelt saemtliche Marker als Praefix, durch Leerzeichen getrennt. DATEV kuerzt auf 60 Zeichen, deshalb steht der Marker vorn.",
+
+    "kauf": "{marker}Kauf {anzahl} {bezeichnung} ({isin})",
+    "verkauf_erloes": "{marker}Verkauf {anzahl} {bezeichnung} ({isin})",
+    "verkauf_gebuehren": "{marker}Gebuehren Verkauf {isin} (Auftrag {auftragsnr})",
+    "verkauf_abgang": "{marker}Abgang Buchwert {isin} (Auftrag {auftragsnr})",
+    "verkauf_ergebnis": "{marker}Abgangsergebnis {isin} (Auftrag {auftragsnr})",
+
+    "dividende": "{marker}Dividende {anzahl} {bezeichnung} | ISIN {isin}",
+    "dividende_steuer": "{marker}KapESt+SolZ Dividende {isin}",
+    "dividende_quellensteuer": "{marker}Quellensteuer {isin}",
+
+    "ausschuettung": "{marker}Ausschuettung {bezeichnung} | ISIN {isin}",
+    "ausschuettung_steuer": "{marker}KapESt+SolZ Ausschuettung {isin}",
+
+    "kupon": "{marker}Kupon {bezeichnung} | ISIN {isin}",
+    "stueckzinsen_gezahlt": "{marker}Gez. Stueckzinsen {isin}",
+    "stueckzinsen_erhalten": "{marker}Erh. Stueckzinsen {isin}",
+    "stueckzinsen_aufloesung": "{marker}Aufloesung Stueckzinsen {isin}",
+
+    "vorabpauschale_bildung": "{marker}Vorabpauschale {jahr} | ISIN {isin}",
+    "vorabpauschale_aufloesung": "{marker}Aufloesung Ausgleichsposten {isin}",
+
+    "verwahrentgelt": "Verwahrentgelt {bezeichnung}",
+    "nebenkosten": "Depot-/Kontogebuehren {bezeichnung}",
+    "zinsgutschrift": "Zinsgutschrift {bezeichnung}",
+    "zinsaufwand": "Zinsaufwand {bezeichnung}",
+    "fx_differenz": "Kursdifferenz {isin}"
   },
+
   "options": {
     "kuerze_bezeichnung_auf": 30,
     "plausi_toleranz_eur": 0.05,
     "schreibe_review_csv": true,
-    "schreibe_log": true
+    "schreibe_log": true,
+    "schreibe_einrichtungsblatt": true,
+    "schreibe_vorabpauschale_blatt": true
   }
 }

@@ -65,6 +65,13 @@ class BuchungsErgebnis:
 
 
 class Buchungsengine:
+    # Schlüsselnamen für das Abgangsergebnis im Netto-Zweig, je
+    # Instrumentenklasse — siehe Kommentar in _verkauf_netto.
+    NETTO_ZWECK = {
+        "anleihe": ("abgang_gewinn", "abgang_verlust"),
+        "derivat_verbrieft": ("ertrag", "verlust"),
+    }
+
     def __init__(self, matrix: Kontenmatrix, ctx: KontenKontext,
                  texte: Dict[str, str], options: Optional[dict] = None):
         self.m = matrix
@@ -133,14 +140,20 @@ class Buchungsengine:
 
     # ── Verkauf ───────────────────────────────────────────────────────────
     def verkauf(self, nb: NormBeleg) -> Tuple[List[Buchung], List[UngebuchterBeleg]]:
-        if nb.buchwert is None:
+        # Ein Buchwert von 0 bei gleichzeitig unvollständiger Bewertung ist
+        # kein Buchwert, sondern eine Wissenslücke. Würden wir buchen, bliebe
+        # das Bestandskonto ungemindert und der gesamte Erlös erschiene als
+        # Gewinn — der Stapel sähe vollständig aus und wäre es nicht.
+        if nb.buchwert is None or (nb.buchwert <= NULL and nb.buchwert_unvollstaendig):
             return [], [UngebuchterBeleg(
                 typ="VERKAUF", datum=nb.schlusstag, betrag=nb.ausmachender_betrag,
                 isin=nb.isin, bezeichnung=nb.bezeichnung, seite=nb.seite,
-                grund="Kein Anschaffungswert ermittelbar",
+                grund="Kein Anschaffungswert ermittelbar (Altbestand vor dem "
+                      "Exportzeitraum)",
                 empfehlung="Buchwert aus der Vorjahresbilanz ergänzen und "
                            "manuell buchen. Eine Buchung mit Buchwert 0 würde "
-                           "den gesamten Erlös als Gewinn ausweisen.")]
+                           "den gesamten Erlös als Gewinn ausweisen und das "
+                           "Bestandskonto ungemindert lassen.")]
 
         methode = self.m.methode(nb.klasse, self._ctx(nb))
         if methode == "brutto":
@@ -182,7 +195,16 @@ class Buchungsengine:
             k_ergebnis = self._fonds("abgang_gewinn" if gewinn else "abgang_verlust", nb)
             k_kosten = self._fonds("veraeusserungskosten", nb)
         else:
-            k_ergebnis = self.m.erfolg(nb.klasse, "abgang_gewinn" if gewinn else "abgang_verlust", c)
+            # Anleihen und verbriefte Derivate teilen sich diesen Zweig, aber
+            # nicht den Schlüsselnamen: das Kontenzuordnungsdokument nennt es
+            # bei Anleihen "Abgangsergebnis Gewinn/Verlust", bei
+            # Termingeschäften "Erträge aus/Verluste aus" (§ 15 Abs. 4 S. 3
+            # EStG) — die Kontenmatrix übernimmt genau diese Begriffe als
+            # Schlüssel. Ein einziger Name für beide wäre an der Matrix
+            # vorbeigeschrieben gewesen.
+            zw_gewinn, zw_verlust = self.NETTO_ZWECK.get(
+                nb.klasse, ("abgang_gewinn", "abgang_verlust"))
+            k_ergebnis = self.m.erfolg(nb.klasse, zw_gewinn if gewinn else zw_verlust, c)
             k_kosten = None
 
         buchungen: List[Buchung] = []
@@ -474,13 +496,20 @@ def _injiziere_marker(buchungen: List[Buchung], belege: List[NormBeleg]) -> List
             if m not in bk.buchungstext and m not in offen:
                 offen.append(m)
         offen.sort(key=lambda m: MARKER_PRIO.index(m) if m in MARKER_PRIO else 99)
-        while offen:
-            if len(" ".join(offen)) + 1 + len(bk.buchungstext) <= 60:
-                break
+
+        # Marker haben Vorrang vor dem Wertpapiernamen. Passt beides nicht in
+        # die 60 Zeichen, wird der Text gekürzt, nicht der Marker verworfen —
+        # ein weggefallenes #AK-PRÜFEN# ist genau der stille Fehler, den die
+        # Marker verhindern sollen. Erst wenn die Marker allein das Limit
+        # sprengen, fällt der letzte weg.
+        while offen and len(" ".join(offen)) > 60:
             verworfen.append(f"{bk.belegfeld_1}: {offen[-1]} (Zeichenlimit)")
             offen.pop()
         if offen:
-            bk.buchungstext = f"{' '.join(offen)} {bk.buchungstext}"[:60]
+            praefix = " ".join(offen)
+            rest = 60 - len(praefix) - 1
+            text = bk.buchungstext[:rest].rstrip() if rest > 0 else ""
+            bk.buchungstext = f"{praefix} {text}".strip()[:60]
     return verworfen
 
 
